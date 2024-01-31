@@ -12,22 +12,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-class DoneGamesViewModelClassic(application: Application): AndroidViewModel(application) {
+class DoneGamesViewModel(application: Application): AndroidViewModel(application) {
     var chosenDiff = MutableLiveData(Difficulty.All)
     var firstFilter = MutableLiveData(false)
     var gameStatus = MutableLiveData(Filters.ALL)
     private val gameDB = GameDB.getInstance(application.baseContext)
     private val repo = DBRepo(gameDB.getDAO())
-    var games = MutableLiveData(mutableListOf<GameClassic>())
-    private var allGames = mutableListOf<GameClassic>()
-    var filteredGames = MutableLiveData(mutableListOf<GameClassic>())
+    var games = MutableLiveData(mutableListOf<Game>())
+    private var allGames = mutableListOf<Game>()
+    var filteredGames = MutableLiveData(mutableListOf<Game>())
     var deletedGames = MutableLiveData(mutableListOf<Int>())
 
     init {
-        var l: List<GameClassic> = emptyList()
+        var l: List<Game> = emptyList()
         val backgroundJob = CoroutineScope(Dispatchers.IO).launch {
-            if (repo.getAllGamesClassic().isNotEmpty()) {
-                l = repo.getAllGamesClassic()
+            if (repo.getAllGames().isNotEmpty()) {
+                l = repo.getAllGames()
             }
         }
         runBlocking {
@@ -50,7 +50,7 @@ class DoneGamesViewModelClassic(application: Application): AndroidViewModel(appl
         firstFilter.value = firstFilter.value!!.not()
     }
 
-    fun removeGame(game: GameClassic) {
+    fun removeGame(game: Game) {
         var list : MutableList<Int> = mutableListOf()
         list.apply {
             deletedGames.value!!.forEach{
@@ -69,7 +69,7 @@ class DoneGamesViewModelClassic(application: Application): AndroidViewModel(appl
     }
 
     fun filterList() {
-        val list = mutableListOf<GameClassic>()
+        val list = mutableListOf<Game>()
         val iterator = games.value!!.iterator()
         while (iterator.hasNext()){ list.add(iterator.next()) }
         filteredGames.value = list
@@ -86,10 +86,10 @@ class DoneGamesViewModelClassic(application: Application): AndroidViewModel(appl
         filteredGames.value = list
     }
 
-    private fun sortByBestTime() : MutableList<GameClassic> {
+    private fun sortByBestTime() : MutableList<Game> {
         val list2  = mutableListOf<GameSort>()
-        val list = mutableListOf<GameClassic>()
-        val list3 = mutableListOf<GameClassic>()
+        val list = mutableListOf<Game>()
+        val list3 = mutableListOf<Game>()
         val iterator2 = filteredGames.value!!.iterator()
         while (iterator2.hasNext()){list3.add(iterator2.next())}
         val iterator = games.value!!.iterator()
@@ -103,7 +103,7 @@ class DoneGamesViewModelClassic(application: Application): AndroidViewModel(appl
            list2.add(GameSort(parseIt(game.time), game))
        }
        list2.sortBy { it.value }
-       var finalList = mutableListOf<GameClassic>()
+       var finalList = mutableListOf<Game>()
        list2.forEach {
            game->
                 finalList.add(game.game)
@@ -118,7 +118,7 @@ class DoneGamesViewModelClassic(application: Application): AndroidViewModel(appl
         return result.toInt()
     }
 
-    private fun applyFilterDiff(difficulty: Difficulty, list: MutableList<GameClassic> ) {
+    private fun applyFilterDiff(difficulty: Difficulty, list: MutableList<Game> ) {
         val iterator = list.iterator()
         while (iterator.hasNext()) {
             val game = iterator.next()
@@ -126,7 +126,7 @@ class DoneGamesViewModelClassic(application: Application): AndroidViewModel(appl
         }
     }
 
-    private fun applyFilterStatus(status : Filters, list: MutableList<GameClassic>) {
+    private fun applyFilterStatus(status : Filters, list: MutableList<Game>) {
         val iterator = list.iterator()
         while(iterator.hasNext()){
             val game = iterator.next()
@@ -150,12 +150,12 @@ class DoneGamesViewModelClassic(application: Application): AndroidViewModel(appl
 
 data class GameSort(
     var value :Int,
-    var game : GameClassic
+    var game : Game
 )
 
 @Suppress("UNCHECKED_CAST")
-class DoneGamesFactoryClassic(private val application: Application) : ViewModelProvider.Factory {
+class DoneGamesFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create (modelClass: Class<T>): T {
-        return DoneGamesViewModelClassic(application) as T
+        return DoneGamesViewModel(application) as T
     }
 }

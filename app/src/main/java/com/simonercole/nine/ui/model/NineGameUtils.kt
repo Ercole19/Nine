@@ -2,7 +2,7 @@ package com.simonercole.nine.ui.model
 
 class NineGameUtils {
     companion object {
-        val symbols = "ABCDEFGHIJKLMNOPQRSTUVXYZ"
+        const val symbols = "ABCDEFGHIJKLMNOPQRSTUVXYZ"
         fun getAttempts(difficulty : Difficulty) : Int {
             return when(difficulty.toString()) {
                 "Easy" -> 4

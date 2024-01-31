@@ -28,11 +28,8 @@ fun NineNavigationGraph() {
                 }
             }
 
-            composable("${Routes.PLAYED_GAMES}/{type}", arguments = listOf(navArgument(name = "type"){type = NavType.StringType})) {
-                val type = it.arguments?.getString("type")
-                if (type != null) {
-                    PlayedGames(type, navController)
-                }
+            composable(Routes.PLAYED_GAMES) {
+                PlayedGames(navController)
             }
 
         }

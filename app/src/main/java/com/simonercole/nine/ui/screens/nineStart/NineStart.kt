@@ -59,11 +59,7 @@ fun NineStart(navController: NavHostController) {
 
     (context as? Activity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     NineStartPortrait(navController = navController)
-
-
 }
-
-
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -160,7 +156,7 @@ fun NineStartPortrait(navController: NavHostController) {
                     }
                 }
                 Card(onClick = {
-                    navController.navigate(Routes.PLAYED_GAMES + "/${"Classic"}")
+                    navController.navigate(Routes.PLAYED_GAMES)
                 }, modifier = Modifier
                     .constrainAs(bt2) {
                         start.linkTo(bt1.end, margin = ConstraintLayoutMargins.smallMargin1)
@@ -188,37 +184,6 @@ fun NineStartPortrait(navController: NavHostController) {
                         )
                     }
                 }
-
-                Card(onClick = {
-                    val none = Difficulty.None.toString()
-                    navController.navigate(Routes.SECOND_SCREEN + "/${none}") }, modifier = Modifier
-                    .constrainAs(bt3) {
-                        start.linkTo(parent.start, ConstraintLayoutMargins.smallMargin1)
-                        end.linkTo(parent.end, ConstraintLayoutMargins.smallMargin1)
-                        top.linkTo(bt1.bottom, ConstraintLayoutMargins.mediumMargin1)
-                    }
-                    .size(AppTheme.dimens.buttonHeight, AppTheme.dimens.medium2),
-                    backgroundColor = btnColor,
-                    shape = RoundedCornerShape(AppTheme.dimens.small3),
-                    elevation = AppTheme.dimens.small1
-                )
-
-                {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    )
-                    {
-                        Text(
-                            style = AppTheme.typography.h6,
-                            text = "Gauntlet",
-                            color = Color.Black,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
             }
 
         }
