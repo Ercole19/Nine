@@ -276,12 +276,12 @@ fun PlayedGamesClassic(
 
             Box(modifier = Modifier
                 .constrainAs(box) {
-                    top.linkTo(parent.top, ConstraintLayoutMargins.mediumMargin3)
+                    top.linkTo(parent.top, ConstraintLayoutMargins.mediumMargin3*3)
                     end.linkTo(parent.end)
                     start.linkTo(parent.start)
-                    bottom.linkTo(bottomRow.top, ConstraintLayoutMargins.mediumMargin1)
+                    bottom.linkTo(parent.bottom, ConstraintLayoutMargins.mediumMargin3)
                 }
-                .fillMaxHeight(0.75f)
+                .fillMaxHeight()
                 .fillMaxWidth()
 
             ) {
@@ -361,19 +361,6 @@ fun PlayedGamesClassic(
                         }
 
                     }
-            }
-
-            BottomNavigation(
-                modifier = Modifier
-                    .constrainAs(bottomRow) {
-                        top.linkTo(parent.bottom)
-                        start.linkTo(parent.start, ConstraintLayoutMargins.smallMargin1)
-                        end.linkTo(parent.end, ConstraintLayoutMargins.smallMargin1)
-                        bottom.linkTo(parent.bottom)
-                    }
-                    .alpha(0f),
-            ) {
-
             }
         }
     }

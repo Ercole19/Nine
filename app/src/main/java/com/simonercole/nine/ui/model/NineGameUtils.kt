@@ -18,5 +18,26 @@ class NineGameUtils {
                 else -> "00:50"
             }
         }
+        fun getTimerLabel(value: Int): String {
+            return "${padding(value / 60)} : ${padding(value % 60)}"
+        }
+
+        fun padding(value: Int) = if (value < 10) ("0$value") else "" + value
+
+        fun parseIt(time: String): Int {
+            val firstOne = time.substring(0, 2)
+            val secondOne = time.substring(5, 7)
+            val result = firstOne + secondOne
+            return result.toInt()
+        }
     }
+    data class GameSort(
+        var value :Int,
+        var game : Game
+    )
+    enum class EndRequest {
+        None, Quit, Refresh
+    }
+
+
 }

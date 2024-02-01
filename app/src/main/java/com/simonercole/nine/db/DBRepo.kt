@@ -8,14 +8,14 @@ import kotlinx.coroutines.launch
 class DBRepo(private val dao : GameDAO) {
     fun insertGame(game: Game){
         CoroutineScope(Dispatchers.IO).launch {
-            dao.insertClassic(game)
+            dao.insert(game)
         }
     }
     fun getMinTime(diff: String) :String?{
-        return dao.getMinTime(diff)
+        return dao.getBestTime(diff)
     }
     fun getAllGames(): List<Game> {
-        return dao.getGames()
+        return dao.getAllGames()
     }
 
     fun deleteGame(game: Game) {

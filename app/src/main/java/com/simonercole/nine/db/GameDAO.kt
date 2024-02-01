@@ -10,13 +10,13 @@ import com.simonercole.nine.ui.model.Game
 interface GameDAO {
 
     @Insert
-    fun insertClassic(game: Game)
+    fun insert(game: Game)
 
     @Query("select * from Game_Classic  order by id DESC")  //ordinando i risultati per id decrescente appariranno per prime le partite più recenti
-    fun getGames(): List<Game>
+    fun getAllGames(): List<Game>
 
     @Query("select min(time) from Game_Classic where difficulty = :diff and win = 1")  //ordinando i risultati per id decrescente appariranno per prime le partite più recenti
-    fun getMinTime(diff: String): String?
+    fun getBestTime(diff: String): String?
 
     @Delete
     fun delete(game: Game)

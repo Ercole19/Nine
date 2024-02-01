@@ -31,17 +31,12 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.VolumeMute
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +55,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.simonercole.nine.R
-import com.simonercole.nine.ui.MediaPlayerChooser
+import com.simonercole.nine.ui.model.GameStatus
+import com.simonercole.nine.ui.model.NineGameUtils
 import com.simonercole.nine.ui.model.NineGameViewModel
 import com.simonercole.nine.ui.model.NineGameViewModelFactory
 import com.simonercole.nine.ui.theme.AppTheme
@@ -72,7 +68,7 @@ fun SecondScreen(difficulty: String, navController: NavHostController) {
     val context = LocalContext.current
     (context as? Activity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     val viewModel : NineGameViewModel = viewModel(factory = NineGameViewModelFactory(context.applicationContext as Application))
-    if (viewModel.gameStatus.toString() == "Started") {
+    if (viewModel.gameStatus.value!!.toString() == "NotStarted") {
         viewModel.setUpGame(difficulty)
     }
     SecondScreenPortrait(viewModel = viewModel, navController = navController)
@@ -84,44 +80,23 @@ fun SecondScreen(difficulty: String, navController: NavHostController) {
 fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostController, lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current) {
     val focusArray by viewModel.focusArray.observeAsState()
     val liveInput by viewModel.liveInput.observeAsState()
-    val showButton by viewModel.showConfirm.observeAsState()
     val userAttempts by viewModel.currentAttempts.observeAsState()
     val sequenceStatus by viewModel.sequenceStatus.observeAsState()
-    val musicStarted by viewModel.musicStarted.observeAsState()
-    val firstGuess by viewModel.firstGuess.observeAsState()
-    val userInputs by viewModel.inputs.observeAsState()
-    val gameWon by viewModel.gameWon.observeAsState()
-    val gameLost by viewModel.gameLost.observeAsState()
-    val showWinDialog = remember { mutableStateOf(false) }
-    val showLossDialog = remember { mutableStateOf(false) }
-    var isMuted by remember { mutableStateOf(false) }
-    var changedMusic by remember { mutableStateOf(false) }
-    val timerExpired by viewModel.timerExpired.observeAsState()
-    val timerValue = viewModel._timerValue.observeAsState()
-    val backRequest = remember{ mutableStateOf(false) }
-    val refreshScreen = remember{ mutableStateOf(false) }
+    val gameStatus by viewModel.gameStatus.observeAsState()
+    val userInputs by viewModel.userGuesses.observeAsState()
+    val timerValue = viewModel.timerValue.observeAsState()
     val newBestTime by viewModel.newBestTime.observeAsState()
-    val musicPausedByOnPause = remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val state = rememberLazyListState()
 
-    MediaPlayerChooser.initMusic()
-    var currentMusic = remember { mutableStateOf(MediaPlayerChooser.gameMusic) }.value
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver{source, event ->
-                if (event == Lifecycle.Event.ON_PAUSE) {
-                    currentMusic.pause()
-                    viewModel.pause()
-                    musicPausedByOnPause.value = true
-                }
-            else if (event==Lifecycle.Event.ON_RESUME) {
-                 if (musicPausedByOnPause.value) {
-                     currentMusic.start()
-                     viewModel.startTimer()
-                     musicPausedByOnPause.value = false
-                 }
-                }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                if (gameStatus!! == GameStatus.OnGoing) viewModel.userChangeActivityMidGame()
+            } else if (event == Lifecycle.Event.ON_RESUME) {
+                if (gameStatus!! == GameStatus.Paused) viewModel.resumeGame()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
@@ -129,36 +104,45 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
         }
     }
 
-    if (gameWon!!) {
-        showWinDialog.value = true
-    }
-
-    if (gameLost!!) {
-        showLossDialog.value = true
-    }
-
-    if (showWinDialog.value) {
-        if (changedMusic.not()) {
-            currentMusic.stop()
-            currentMusic = MediaPlayerChooser.victoryMusic
-            currentMusic.start()
-            changedMusic = true
-        }
+    if (gameStatus!! == GameStatus.Won || gameStatus!! == GameStatus.Lost) {
         AlertDialog(
             backgroundColor = Color(0xfffff8dc),
             onDismissRequest = {
-                viewModel.resetMusic(currentMusic)
-                showWinDialog.value = !showWinDialog.value
+                viewModel.resetGame()
                 navController.navigate(Routes.NINE_START)
             },
-            title = { Text(text = "Congratulations!", color = Color.Black, style = AppTheme.typography.body1) },
+            title = {
+                Text(
+                    text = if (gameStatus!! == GameStatus.Won) "Congratulations!" else "Better luck next time",
+                    color = Color.Black,
+                    style = AppTheme.typography.body1
+                )
+            },
             text = {
                 Text(
-                    text = "You won!",
+                    text = if (gameStatus!! == GameStatus.Won) "You won!" else "You lost!",
                     style = AppTheme.typography.body1,
                     color = Color.Black,
                     textAlign = TextAlign.Center
                 )
+                if (gameStatus!! == GameStatus.Lost) {
+                    Text(
+                        text = "Sequence was : ${String(viewModel.sequenceToGuess)}",
+                        style = AppTheme.typography.body1,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = AppTheme.dimens.small2)
+                    )
+                }
+                if (newBestTime!!) {
+                    Text(
+                        text = "New record in ${viewModel.difficulty} mode : ${viewModel.userGameTime.value}",
+                        style = AppTheme.typography.body1,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = AppTheme.dimens.small2)
+                    )
+                }
                 Text(
                     text = "Play again?",
                     style = AppTheme.typography.body1,
@@ -166,21 +150,12 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = AppTheme.dimens.medium1)
                 )
-                if (newBestTime!!) {
-                    Text(
-                        text = "New record in ${viewModel.difficulty} mode : ${viewModel.newTime.value}",
-                        style = AppTheme.typography.body1,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = AppTheme.dimens.small2)
-                    )
-                }
+
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.resetMusic(currentMusic)
-                        showWinDialog.value = !showWinDialog.value
+                        viewModel.resetGame()
                         navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
                     },
                 ) {
@@ -189,102 +164,28 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
             },
             dismissButton = {
                 TextButton(onClick = {
-                    viewModel.resetMusic(currentMusic)
-                    showWinDialog.value = !showWinDialog.value
                     navController.navigate(Routes.NINE_START)
                 }) {
                     androidx.compose.material3.Text("Main menu", style = AppTheme.typography.body1)
                 }
             })
-    }
-
-    if (showLossDialog.value) {
-        if (changedMusic.not()) {
-            currentMusic.stop()
-            currentMusic = MediaPlayerChooser.lossMusic
-            currentMusic.start()
-            changedMusic = true
-        }
-        AlertDialog(
-            backgroundColor = Color(0xfffff8dc),
-            onDismissRequest = {
-                viewModel.resetMusic(currentMusic)
-                showLossDialog.value = !showLossDialog.value
-                navController.navigate(Routes.NINE_START)
-            },
-            title = { Text(text = "Game Lost", color = Color.Black, style = AppTheme.typography.body1) },
-            text = {
-                Text(
-                    text = if (timerExpired!!.value) "Timer finished" else "Attempts finished",
-                    style = AppTheme.typography.body1,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Play again?",
-                    style = AppTheme.typography.body1,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = AppTheme.dimens.medium1)
-                )
-
-                Text(
-                    text = "Sequence was : ${String(viewModel.sequenceToGuess)}",
-                    style = AppTheme.typography.body1,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = AppTheme.dimens.small2)
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.resetMusic(currentMusic)
-                        showLossDialog.value = !showLossDialog.value
-                        navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
-                    },
-                ) {
-                    androidx.compose.material3.Text(text = "Play again", style = AppTheme.typography.body1)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    viewModel.resetMusic(currentMusic)
-                    showLossDialog.value = !showLossDialog.value
-                    navController.navigate(Routes.NINE_START)
-                }) {
-                    androidx.compose.material3.Text("Main menu", style = AppTheme.typography.body1)
-                }
-            })
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { viewModel.resetMusic(currentMusic) }
-    }
-
-    if (firstGuess == false && musicStarted == true && (!backRequest.value && !refreshScreen.value)) {
-        currentMusic.start()
     }
 
     BackHandler(enabled = true, onBack = {
-        if (musicStarted!!) {
-            viewModel.pause()
-            currentMusic.pause()
-        }
-        backRequest.value = true
+        if (gameStatus!! == GameStatus.OnGoing) viewModel.quitRequest()
+        else navController.navigate(Routes.NINE_START)
+
     })
 
-    if (refreshScreen.value && musicStarted!!) {
+    if (gameStatus!! == GameStatus.Paused) {
         AlertDialog(
             backgroundColor = Color(0xfffff8dc),
             onDismissRequest = {
-                refreshScreen.value = false
-                currentMusic.start()
-                viewModel.startTimer()
+                viewModel.resumeGame()
             },
             title = {
                 Text(
-                    text = "Game is still on.\nYou still want to refresh ?\nActual game will count as lost",
+                    text = "Game is still on.\nYou still want to end this game?\nActual game will count as lost",
                     style = AppTheme.typography.body1,
                     color = Color.Black
                 )
@@ -292,74 +193,27 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
             confirmButton = {
                 TextButton(
                     onClick = {
-                        refreshScreen.value = false
-                        viewModel.resetMusic(currentMusic)
                         viewModel.getTime()
                         viewModel.saveGameToDB()
-                        navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
+                        if (viewModel.endRequestFromUser == NineGameUtils.EndRequest.Refresh) navController.navigate(
+                            Routes.SECOND_SCREEN + "/${viewModel.difficulty}"
+                        )
+                        else navController.navigate(Routes.NINE_START)
+                        viewModel.resetGame()
                     },
                 ) {
-                    androidx.compose.material3.Text("Refresh",style = AppTheme.typography.body1)
+                    androidx.compose.material3.Text("End game", style = AppTheme.typography.body1)
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    refreshScreen.value = false
-                    viewModel.startTimer()
-                    currentMusic.start()
+                    viewModel.resumeGame()
                 }) {
-                    androidx.compose.material3.Text("Cancel",style = AppTheme.typography.body1)
+                    androidx.compose.material3.Text("Cancel", style = AppTheme.typography.body1)
                 }
             })
-    }
-    else if(refreshScreen.value){
+    } else if (gameStatus!! == GameStatus.NotStarted) {
         navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
-        refreshScreen.value = false
-    }
-
-    if (backRequest.value && musicStarted!!) {
-        AlertDialog(
-            backgroundColor = Color(0xfffff8dc),
-            onDismissRequest = {
-                backRequest.value = false
-                viewModel.startTimer()
-                currentMusic.start()
-            },
-            title = {
-                Text(
-                    text = "Game is still on.\nYou still want to quit ?\nActual game will count as lost.",
-                    style = AppTheme.typography.body1,
-                    color = Color.Black
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        backRequest.value = false
-                        viewModel.resetMusic(currentMusic)
-                        viewModel.saveGameToDB()
-                        navController.navigate(Routes.NINE_START)
-                    },
-                ) {
-                    androidx.compose.material3.Text("Quit",style = AppTheme.typography.body1)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    backRequest.value = false
-                    viewModel.startTimer()
-                    currentMusic.start()
-                }) {
-                    androidx.compose.material3.Text("Cancel",style = AppTheme.typography.body1)
-                }
-            })
-    }else if(backRequest.value){
-        navController.navigate(Routes.NINE_START)
-        backRequest.value = false
-    }
-
-    if (isMuted) {
-        currentMusic.pause()
     }
 
     Box(
@@ -393,11 +247,8 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                     indication = null
                 )
                 {
-                    if (musicStarted!!) {
-                        viewModel.pause()
-                        currentMusic.pause()
-                    }
-                    backRequest.value = true
+                    if (gameStatus!! == GameStatus.OnGoing) viewModel.quitRequest()
+                    else navController.navigate(Routes.NINE_START)
                 }
                 .size(AppTheme.dimens.medium1),
             tint = Color.Black
@@ -417,11 +268,8 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                     indication = null
                 )
                 {
-                    if (musicStarted!!) {
-                        viewModel.pause()
-                        currentMusic.pause()
-                    }
-                    refreshScreen.value = true
+                    if (gameStatus!! == GameStatus.OnGoing) viewModel.refreshRequest()
+                    else navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
                 }
                 .size(AppTheme.dimens.medium1),
             tint = Color.Black
@@ -439,7 +287,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
         )
 
         Text(
-            text = "Attempts : ${userAttempts}/${viewModel.attempts}",
+            text = "Attempts : ${userAttempts}/${viewModel.maxAttempts}",
             style = AppTheme.typography.h6,
             modifier = Modifier
                 .constrainAs(attempts) {
@@ -448,38 +296,13 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 })
 
         Text(
-            text = getTimerLabel(timerValue.value!!.value),
+            text = NineGameUtils.getTimerLabel(timerValue.value!!.intValue),
             style = AppTheme.typography.h6,
             modifier = Modifier
                 .constrainAs(timer) {
                     top.linkTo(parent.top, ConstraintLayoutMargins.mediumMargin1)
                     end.linkTo(refreshButton.start, ConstraintLayoutMargins.smallMargin3)
                 })
-
-        Icon(
-
-            imageVector = if (isMuted) Icons.AutoMirrored.Filled.VolumeMute else Icons.AutoMirrored.Filled.VolumeUp,
-            contentDescription = "info",
-            modifier = Modifier
-                .constrainAs(muteBtn) {
-                    top.linkTo(attempts.bottom, ConstraintLayoutMargins.smallMargin2)
-                    end.linkTo(parent.end, ConstraintLayoutMargins.smallMargin1)
-                }
-                .clickable(
-                    interactionSource = MutableInteractionSource(),
-                    indication = null
-                )
-                {
-                    if (musicStarted == true) {
-                        if (!isMuted) isMuted = true
-                        else {
-                            isMuted = false
-                            currentMusic.start()
-                        }
-                    }
-                }
-                .size(AppTheme.dimens.medium1),
-            tint = Color.Black)
 
         Row(
             modifier = Modifier
@@ -649,7 +472,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
             ConstraintLayout {
                 val (inputTop, inputBottom, confirm) = createRefs()
 
-                if (showButton == true) {
+                if (!liveInput!!.contains(' ')) {
                     Card(onClick = {
                         viewModel.makeGuess()
                     },
@@ -735,18 +558,20 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                                 )
                             }
                         } else {
-                            Spacer(modifier = Modifier
-                                .size(AppTheme.dimens.medium2)
-                                .background(
-                                    Color.Transparent,
-                                    shape = RoundedCornerShape(AppTheme.dimens.small1)
-                                )
-                                .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))
-                                .border(
-                                    2.dp,
-                                    Color.Transparent,
-                                    shape = RoundedCornerShape(AppTheme.dimens.small1)
-                                ))
+                            Spacer(
+                                modifier = Modifier
+                                    .size(AppTheme.dimens.medium2)
+                                    .background(
+                                        Color.Transparent,
+                                        shape = RoundedCornerShape(AppTheme.dimens.small1)
+                                    )
+                                    .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))
+                                    .border(
+                                        2.dp,
+                                        Color.Transparent,
+                                        shape = RoundedCornerShape(AppTheme.dimens.small1)
+                                    )
+                            )
                         }
                     }
                 }
@@ -803,18 +628,20 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                                 )
                             }
                         } else {
-                            Spacer(modifier = Modifier
-                                .size(AppTheme.dimens.medium2)
-                                .background(
-                                    Color.Transparent,
-                                    shape = RoundedCornerShape(AppTheme.dimens.small1)
-                                )
-                                .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))
-                                .border(
-                                    2.dp,
-                                    Color.Transparent,
-                                    shape = RoundedCornerShape(AppTheme.dimens.small1)
-                                ))
+                            Spacer(
+                                modifier = Modifier
+                                    .size(AppTheme.dimens.medium2)
+                                    .background(
+                                        Color.Transparent,
+                                        shape = RoundedCornerShape(AppTheme.dimens.small1)
+                                    )
+                                    .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))
+                                    .border(
+                                        2.dp,
+                                        Color.Transparent,
+                                        shape = RoundedCornerShape(AppTheme.dimens.small1)
+                                    )
+                            )
 
                         }
 
@@ -825,9 +652,3 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
         }
     }
 }
-
-fun getTimerLabel(value: Int): String {
-    return "${padding(value / 60)} : ${padding(value % 60)}"
-}
-
-fun padding(value: Int) = if (value < 10) ("0$value") else "" + value

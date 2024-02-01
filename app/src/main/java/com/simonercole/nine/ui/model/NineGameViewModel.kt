@@ -1,80 +1,61 @@
 package com.simonercole.nine.ui.model
 
 import android.app.Application
-import android.media.MediaPlayer
-import android.os.CountDownTimer
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.simonercole.nine.db.DBRepo
-import com.simonercole.nine.db.GameDB
-import com.simonercole.nine.ui.screens.getTimerLabel
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.viewModelScope
+import com.simonercole.nine.ui.model.NineGameUtils.Companion.getTimerLabel
+import com.simonercole.nine.ui.model.NineGameUtils.Companion.parseIt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
-import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 
 class NineGameViewModel(application: Application): AndroidViewModel(application) {
-
     lateinit var sequenceToGuess: CharArray
-    var gameStatus : GameStatus = GameStatus.Started
-    var firstGuess = MutableLiveData(true)
-    var musicStarted = MutableLiveData(false)
-    private val gameDB = GameDB.getInstance(application.baseContext)
-    open val repository = DBRepo(gameDB.getDAO())
-    val inputs =  MutableLiveData(mutableListOf(HashMap<Int, Pair<String, Char>>()))
-    var liveInput = MutableLiveData(CharArray(9) { ' ' })
-    var focusArray = MutableLiveData(IntArray(9) { 1 * it })
-    var distanceArray = IntArray(9) { -1 }
-    var showConfirm = MutableLiveData(false)
-    var startingKeyboard = CharArray(9) { ' ' }
-    var sequenceStatus = MutableLiveData(IntArray(9) { 0 })
-    var guessedChars = CharArray(9) { ' ' }
-    lateinit var difficulty  : String
-    var attempts by Delegates.notNull<Int>()
+    val userGuesses = MutableLiveData(mutableListOf(HashMap<Int, Pair<String, Char>>())) //This map saves user past guesses that will be displayed to him
+    var liveInput = MutableLiveData(CharArray(9) { ' ' }) //Input user create by clicking the tiles he has in his keyboard
+    var focusArray = MutableLiveData(IntArray(9) { 1 * it }) //It is used to understand in which tile the "focus" is, the focus is where the next symbol is gonna be put
+    private var distanceArray = IntArray(9) { -1 }
+    var maxAttempts by Delegates.notNull<Int>()
     var currentAttempts = MutableLiveData(0)
-    val gameWon = MutableLiveData(false)
-    val gameLost = MutableLiveData(false)
-    val timerExpired = MutableLiveData(mutableStateOf(false))
-    var totalTime by Delegates.notNull<Int>()
-    val attemptsFinished = MutableLiveData(mutableStateOf(false))
-    var job: Job? = null
-    val _timerValue = MutableLiveData(mutableStateOf(0))
-    val _play = MutableLiveData(false)
-    private var bestTime = ""
-    val newTime = MutableLiveData("")
-    val newBestTime = MutableLiveData(false)
+    var sequenceStatus = MutableLiveData(IntArray(9) { 0 }) // This array traces which symbols of the sequence are placed correctly by user
+    var guessedChars = CharArray(9) { ' ' }
+    var startingKeyboard = CharArray(9) { ' ' } //KeyBoard given to user when started the game
+    val timerValue = MutableLiveData(mutableIntStateOf(0)) // Value of the countDown timer, so it will change constantly until 0 and be on screen during all the game
+    private var bestTime = "" //The game before starting a game saves user best time in the specific difficulty chosen, so that will be able to understand if user made a new record
+    val userGameTime = MutableLiveData("")  //How many time user took to finish his game
+    val newBestTime = MutableLiveData(false) //If user make a record, so a new best time we save it here and we update the DB with this new best time
+    var gameStatus = MutableLiveData(GameStatus.NotStarted)
+    private var totalTime by Delegates.notNull<Int>()
+    lateinit var difficulty: String //needed to set up a game
+    var endRequestFromUser = NineGameUtils.EndRequest.None
+    private var job: Job? = null
+    private lateinit var gameModel : GameModel
+
 
     fun setUpGame(diff: String) {
-        val backgroundJob = CoroutineScope(Dispatchers.IO).launch {
-            bestTime = if (repository.getMinTime(diff) != null) {
-                repository.getMinTime(diff)!!
-            } else "99 : 99"
-        }
-        runBlocking {
-            backgroundJob.join()
+        gameModel = GameModel(application = getApplication())
+        viewModelScope.launch {
+            bestTime = gameModel.getUserBestTime(diff)
         }
         difficulty = diff
 
-        _timerValue.value!!.value = when (diff) {
+        timerValue.value!!.intValue = when (diff) {
             "Easy" -> 100
             "Medium" -> 80
             else -> 50
         }
-        totalTime = _timerValue.value!!.value
-        attempts = when(diff) {
+        totalTime = timerValue.value!!.intValue
+        maxAttempts = when (diff) {
             "Easy" -> 4
             "Medium" -> 4
             else -> 3
@@ -82,103 +63,97 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
         sequenceToGuess = createSequenceToGuess()
         sequenceToGuess.shuffle()
         createKeyboard()
-        focusArray.value!![0] =0
-        gameStatus = GameStatus.OnGoing
-        inputs.value!!.removeAt(0)
+        focusArray.value!![0] = 0
+        gameStatus.value = GameStatus.FirstGuess
+        userGuesses.value!!.removeAt(0)
     }
+
     fun makeGuess() {
-        if (firstGuess.value == true) {
+        if (gameStatus.value == GameStatus.FirstGuess) {
             startTimer()
-            firstGuess.value = false
-            musicStarted.value = true
+            gameStatus.value = GameStatus.OnGoing
         }
-        musicStarted.value = true
         calculateDistance()
         currentAttempts.value = currentAttempts.value!! + 1
-        updateInputs()
+        updateUserGuesses()
         clearInput()
         updateFocusByWrite(0)
         checkGameStatus()
     }
-    fun startTimer() {
-        if (_timerValue.value!!.value == 0) _timerValue.value!!.value = 0
+
+    private fun startTimer() {
+        if (timerValue.value!!.intValue == 0) timerValue.value!!.intValue = 0
         job?.cancel()
-        job = GlobalScope.launch (Dispatchers.Main) {
-            withContext(Dispatchers.Main){
+        job = GlobalScope.launch(Dispatchers.Main) {
+            withContext(Dispatchers.Main) {
                 delay(timeMillis = 200)
                 while (isActive) {
-                    if (_timerValue.value!!.value <= 0) {
+                    if (timerValue.value!!.intValue <= 0) {
                         job?.cancel()
-                        _play.value = false
-                        timerExpired()
                         return@withContext
                     }
                     delay(timeMillis = 1000)
-                    _timerValue.value!!.value = _timerValue.value!!.value - 1
-                    _play.value = true
-                }}
+                    timerValue.value!!.intValue = timerValue.value!!.intValue - 1
+                }
+            }
 
         }
     }
-    fun checkGameStatus() {
-        newTime.value = getTimerLabel(totalTime - _timerValue.value!!.value)
-        if (currentAttempts.value == attempts) {
+
+    private fun checkGameStatus() {
+        userGameTime.value = getTimerLabel(totalTime - timerValue.value!!.intValue)
+        if (currentAttempts.value == maxAttempts) {
             if (sequenceStatus.value!!.contains(0).not()) {
-                pause()
-                if (parseIt(bestTime) > parseIt(newTime.value!!)) {
-                    bestTime = newTime.value!!
+                pauseTimer()
+                if (parseIt(bestTime) > parseIt(userGameTime.value!!)) {
+                    bestTime = userGameTime.value!!
                     newBestTime.value = true
                 }
-                gameWon.value = true
+                gameStatus.value = GameStatus.Won
+                saveGameToDB()
+            } else {
+                pauseTimer()
+                gameStatus.value = GameStatus.Lost
                 saveGameToDB()
             }
-            else {
-                pause()
-                gameLost.value = true
-                attemptsFinished.value!!.value = true
-                saveGameToDB()
-            }
-        }
-        else {
+        } else {
             if (sequenceStatus.value!!.contains(0).not()) {
-                pause()
-                if (parseIt(bestTime) > parseIt(newTime.value!!)) {
-                    bestTime = newTime.value!!
+                pauseTimer()
+                if (parseIt(bestTime) > parseIt(userGameTime.value!!)) {
+                    bestTime = userGameTime.value!!
                     newBestTime.value = true
                 }
-                gameWon.value = true
+                gameStatus.value = GameStatus.Won
                 saveGameToDB()
             }
         }
     }
+
     fun saveGameToDB() {
         val game = currentAttempts.value?.let {
             Game(
                 difficulty = difficulty,
                 attempts = it,
-                time = newTime.value!!,
+                time = userGameTime.value!!,
                 dateTime = LocalDateTime.now().toString(),
-                win = gameWon.value == true,
+                win = gameStatus.value == GameStatus.Won,
             )
         }
         if (game != null) {
-            repository.insertGame(game)
+            viewModelScope.launch {
+                gameModel.saveToDB(game)
+            }
         }
     }
-    fun timerExpired() {
-        gameLost.value = true
-        timerExpired.value!!.value = true
-        saveGameToDB()
-    }
 
-    fun createKeyboard() {
+    private fun createKeyboard() {
         for ((i) in sequenceToGuess.withIndex()) {
             startingKeyboard[i] = sequenceToGuess[i]
         }
         startingKeyboard.shuffle()
     }
 
-    fun createSequenceToGuess(): CharArray {
+    private fun createSequenceToGuess(): CharArray {
         return NineGameUtils.symbols.toList().shuffled().take(9).joinToString("").toCharArray()
     }
 
@@ -191,7 +166,7 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
         liveInput.value = newInput
         val focusIndex = focusArray.value?.indexOf(0)
         if (focusIndex != null) {
-            for (idx in focusIndex ..8) {
+            for (idx in focusIndex..8) {
                 if (sequenceStatus.value!![idx] == 0) {
                     updateFocusByWrite(idx)
                     break
@@ -199,51 +174,50 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
 
             }
         }
-        showConfirm.value = liveInput.value?.contains(' ') == false
-
     }
 
-     fun updateInputs() {
-         val map =  HashMap<Int, Pair<String, Char>>()
-         val newList = mutableListOf(HashMap<Int, Pair<String, Char>>())
-         newList.removeAt(0)
+    //These fun updates the user past guesses that will be displayed on a lazy column in the UI, the guess comprehend user input and distances
+    private fun updateUserGuesses() {
+        val map = HashMap<Int, Pair<String, Char>>()
+        val newList = mutableListOf(HashMap<Int, Pair<String, Char>>())
+        newList.removeAt(0)
 
-         inputs.value!!.forEach { hashMap ->
-             newList.add(hashMap)
-         }
+        userGuesses.value!!.forEach { hashMap ->
+            newList.add(hashMap)
+        }
 
-         for (i in 0..8) {
-             if( currentAttempts.value == 1 && difficulty == "Hard") {
-                 if (i%2!=0 || sequenceStatus.value!![i] == 1) {map[i]  = Pair(distanceArray[i].toString(), liveInput.value!![i])}
-                 else {map[i]  = Pair("?", liveInput.value!![i])}
-             }
-             else if( currentAttempts.value == 2 && difficulty == "Hard") {
-                 if (i%2 ==0 || sequenceStatus.value!![i] == 1) {map[i]  = Pair(distanceArray[i].toString(), liveInput.value!![i])}
-                 else {map[i]  = Pair("?", liveInput.value!![i])}
-             }
-             else {map[i]  = Pair(distanceArray[i].toString(), liveInput.value!![i])}
+        for (i in 0..8) {
+            if (currentAttempts.value == 1 && difficulty == "Hard") {
+                if (i % 2 != 0 || sequenceStatus.value!![i] == 1) {
+                    map[i] = Pair(distanceArray[i].toString(), liveInput.value!![i])
+                } else {
+                    map[i] = Pair("?", liveInput.value!![i]) //Hard mode 1st try blurs odd distances by replace them with a '?'
+                }
+            } else if (currentAttempts.value == 2 && difficulty == "Hard") {
+                if (i % 2 == 0 || sequenceStatus.value!![i] == 1) {
+                    map[i] = Pair(distanceArray[i].toString(), liveInput.value!![i])
+                } else {
+                    map[i] = Pair("?", liveInput.value!![i]) //Hard mode 2nd try blurs even distances
+                }
+            } else {
+                map[i] = Pair(distanceArray[i].toString(), liveInput.value!![i])
+            }
 
-         }
-         newList.add(map)
-         inputs.value  = newList
-     }
-
-    fun resetMusic(mediaPlayer: MediaPlayer) {
-        musicStarted.value = false
-        mediaPlayer.stop()
+        }
+        newList.add(map)
+        userGuesses.value = newList
     }
-
-    fun clearInput() {
+    //After the user make a guess, all the char placed incorrectly will be placed in the starting keyboard. The correct ones will permanently remain on the input tiles
+    private fun clearInput() {
         val newInput = CharArray(9) { ' ' }
         for (i in 0..8) {
             if (sequenceStatus.value?.get(i) == 1) newInput[i] = liveInput.value!![i]
             else newInput[i] = ' '
         }
         liveInput.value = newInput
-        showConfirm.value = false
     }
 
-    fun calculateDistance() {
+    private fun calculateDistance() {
         liveInput.value?.forEachIndexed { index, c ->
             val correctIndex = sequenceToGuess.indexOf(c)
             val finalDistance: Int
@@ -256,7 +230,7 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
             if (finalDistance == 0) sequenceStatus.value?.set(index, 1)
         }
     }
-
+    //A user can touch a tile in which there is a char and delete it in order to change the char
     fun deleteChar(index: Int) {
         val newInput = CharArray(9) { ' ' }
         liveInput.value?.forEachIndexed { i, _ ->
@@ -264,21 +238,21 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
             else newInput[i] = liveInput.value!![i]
         }
         liveInput.value = newInput
-        if (showConfirm.value == true) showConfirm.value = false
     }
 
-    fun updateFocusByTouch(index:Int) {
+    fun updateFocusByTouch(index: Int) {
         val newInput = IntArray(9) { 1 }
-        var newIndex: Int = index
+        val newIndex: Int = index
         if (sequenceStatus.value!![index] == 0) {
             newInput[newIndex] = 0
             focusArray.value = newInput
+        } else {
+            updateFocusByWrite(index)
         }
-        else {updateFocusByWrite(index)}
 
     }
 
-    fun updateFocusByWrite(index: Int) {
+    private fun updateFocusByWrite(index: Int) {
         val newInput = IntArray(9) { 1 }
         var newIndex: Int = index
         while (true) {
@@ -296,37 +270,39 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
         }
         focusArray.value = newInput
     }
-    private fun parseIt(time:  String) : Int {
-        val firstOne = time.substring(0,2)
-        val secondOne = time.substring(5,7)
-        val result = firstOne + secondOne
-        return result.toInt()
+
+    fun resetGame() {
+        gameStatus.value = GameStatus.NotStarted
     }
 
-    fun pause() {
+    fun userChangeActivityMidGame() {
+        pauseTimer()
+        gameStatus.value = GameStatus.Paused
+    }
+
+    fun quitRequest() {
+        pauseTimer()
+        endRequestFromUser = NineGameUtils.EndRequest.Quit
+        gameStatus.value = GameStatus.Paused
+    }
+    fun refreshRequest() {
+        pauseTimer()
+        endRequestFromUser = NineGameUtils.EndRequest.Refresh
+        gameStatus.value = GameStatus.Paused
+    }
+
+    private fun pauseTimer() {
         job?.cancel()
-        _play.value = false
+    }
+    fun resumeGame() {
+        endRequestFromUser = NineGameUtils.EndRequest.None
+        gameStatus.value = GameStatus.OnGoing
+        startTimer()
     }
 
     fun getTime() {
-        newTime.value = getTimerLabel(totalTime - _timerValue.value!!.value)
+        userGameTime.value = getTimerLabel(totalTime - timerValue.value!!.intValue)
     }
-
-    fun stop() {
-        job?.cancel()
-        _timerValue.value!!.value = 0
-        _play.value = true
-    }
-}
-
-object TimerFormat {
-    private const val FORMAT = "%02d:%02d"
-
-    fun Long.timeFormat(): String = String.format(
-        FORMAT,
-        TimeUnit.MILLISECONDS.toMinutes(this) % 60,
-        TimeUnit.MILLISECONDS.toSeconds(this) % 60
-    )
 }
 
 @Suppress("UNCHECKED_CAST")
