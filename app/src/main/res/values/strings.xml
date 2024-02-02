@@ -1,3 +1,45 @@
 <resources>
     <string name="app_name">Nine</string>
+    <string name="text_intro">A total new innovative word puzzle game</string>
+    <string name="play_button">Play now</string>
+    <string name="played_games">Played games</string>
+    <string name="easy_diff">Easy</string>
+    <string name="medium_diff">Medium</string>
+    <string name="hard_diff">Hard</string>
+    <string name="Choose_diff">Choose Difficulty</string>
+    <string name="back">Back</string>
+    <string name="play">Play</string>
+    <string name="Explanation_1">You have</string>
+    <string name="Explanation_2">attempts to guess. Game duration : </string>
+    <string name="attempts">Attempts</string>
+    <string name="PastGuesses">Past Guesses </string>
+    <string name="QuittingRequest">Game is still on.
+You still want to end this game?
+Actual game will count as lost</string>
+    <string name="endGame">End Game </string>
+    <string name="WinningTitle">Congratulations!</string>
+    <string name="LosingTitle">Better luck next time </string>
+    <string name="winningMessage">You won! </string>
+    <string name="LosingMessage">You lost!</string>
+    <string name="RecordMessage">New record made in  </string>
+    <string name="SequenceWas">Sequence was  </string>
+    <string name="Confirm">Confirm</string>
+    <string name="PlayAgain">Play again</string>
+    <string name="mainMenu">Main menu</string>
+    <string name="GameDuration">Game Duration : </string>
+    <string name="Difficulty">Difficulty : </string>
+    <string name="DifficultyFilter">Difficulty</string>
+    <string name="attemptsPlayedGames">Attempts : </string>
+    <string name="All">All</string>
+    <string name="GameStatus">Game Status</string>
+    <string name="ShowBestTime">Show best times
+ (Only win)</string>
+    <string name="OnlyWon">Only Won</string>
+    <string name="OnlyLost">Only lost </string>
+    <string name="Won">Won</string>
+    <string name="Lost">Lost </string>
+    <string name="ErrorFromDB"> Error with the DB, try restarting the app </string>
+    <string name="Error"> Error</string>
+
+
 </resources>

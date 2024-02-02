@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
-import com.simonercole.nine.ui.model.Game
+import com.simonercole.nine.utils.NineGameUtils
 
 @Dao
 interface GameDAO {
@@ -16,7 +16,7 @@ interface GameDAO {
     fun getAllGames(): List<Game>
 
     @Query("select min(time) from Game_Classic where difficulty = :diff and win = 1")  //ordinando i risultati per id decrescente appariranno per prime le partite più recenti
-    fun getBestTime(diff: String): String?
+    fun getBestTime(diff: NineGameUtils.Difficulty): String?
 
     @Delete
     fun delete(game: Game)

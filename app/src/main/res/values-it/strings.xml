@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nine</string>
+    <string name="text_intro">Un innovativo gioco di logica</string>
+    <string name="play_button">Gioca ora</string>
+    <string name="played_games">Storico</string>
+    <string name="easy_diff">Facile</string>
+    <string name="medium_diff">Medio</string>
+    <string name="hard_diff">Difficile</string>
+    <string name="Choose_diff">Scegli difficoltà</string>
+    <string name="back">Indietro</string>
+    <string name="play">Gioca</string>
+    <string name="Explanation_1">Hai</string>
+    <string name="Explanation_2">tentativi per indovinare. Durata partita : </string>
+    <string name="attempts">Tentativi</string>
+    <string name="PastGuesses">Sequenze immesse </string>
+    <string name="QuittingRequest">Partita ancora in corso.
+Vuoi comunque terminare la partita attuale?
+La partita verrà contata come persa</string>
+    <string name="endGame">Termina </string>
+    <string name="WinningTitle">Congratulazioni!</string>
+    <string name="LosingTitle">Andrà meglio la prossima volta </string>
+    <string name="winningMessage">Hai vinto! </string>
+    <string name="LosingMessage">Hai perso!</string>
+    <string name="RecordMessage">Nuovo record fatto in   </string>
+    <string name="SequenceWas">La sequenza era  </string>
+    <string name="Confirm">Conferma</string>
+    <string name="PlayAgain">Gioca ancora </string>
+    <string name="mainMenu">Esci </string>
+    <string name="GameDuration">Durata : </string>
+    <string name="Difficulty">Difficoltà : </string>
+    <string name="DifficultyFilter">Difficoltà</string>
+    <string name="attemptsPlayedGames">Tentativi : </string>
+    <string name="All">Tutto</string>
+    <string name="GameStatus">Esito partita</string>
+    <string name="ShowBestTime">Tempi migliori
+ (Solo vittorie)</string>
+    <string name="OnlyWon">Solo vittorie</string>
+    <string name="OnlyLost">Solo sconfitte</string>
+    <string name="Won">Vinta</string>
+    <string name="Lost">Persa</string>
+    <string name="ErrorFromDB"> Errore con il DB, prova a riavviare il gioco </string>
+    <string name="Error"> Errore</string>
+</resources>
