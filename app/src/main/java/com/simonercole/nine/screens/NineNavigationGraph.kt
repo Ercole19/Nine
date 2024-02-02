@@ -1,4 +1,4 @@
-package com.simonercole.nine.utils
+package com.simonercole.nine.screens
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavType
@@ -6,9 +6,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.simonercole.nine.screens.PlayedGames
-import com.simonercole.nine.screens.SecondScreen
 import com.simonercole.nine.screens.start_screen.NineStart
+import com.simonercole.nine.utils.Routes
 
 @Composable
 fun NineNavigationGraph() {

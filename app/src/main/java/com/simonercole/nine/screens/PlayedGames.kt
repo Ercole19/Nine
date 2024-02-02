@@ -56,9 +56,9 @@ import com.simonercole.nine.R
 import com.simonercole.nine.utils.ConstraintLayoutMargins
 import com.simonercole.nine.viewmodel.DoneGamesFactory
 import com.simonercole.nine.viewmodel.PlayedGamesViewModel
-import com.simonercole.nine.utils.theme.AppTheme
-import com.simonercole.nine.utils.theme.no_cell
-import com.simonercole.nine.utils.theme.ok_cell
+import com.simonercole.nine.theme.AppTheme
+import com.simonercole.nine.theme.no_cell
+import com.simonercole.nine.theme.ok_cell
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import com.simonercole.nine.utils.NineGameUtils.GameResult

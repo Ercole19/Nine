@@ -1,6 +1,5 @@
 package com.simonercole.nine.screens
 
-import android.R.id.input
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
@@ -61,7 +60,7 @@ import com.simonercole.nine.utils.ConstraintLayoutMargins
 import com.simonercole.nine.utils.NineGameUtils
 import com.simonercole.nine.utils.NineGameUtils.GameStatus
 import com.simonercole.nine.utils.Routes
-import com.simonercole.nine.utils.theme.AppTheme
+import com.simonercole.nine.theme.AppTheme
 import com.simonercole.nine.viewmodel.NineGameViewModel
 import com.simonercole.nine.viewmodel.NineGameViewModelFactory
 import kotlinx.coroutines.launch

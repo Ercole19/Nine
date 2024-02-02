@@ -3,7 +3,7 @@ package com.simonercole.nine.utils
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.simonercole.nine.utils.theme.AppTheme
+import com.simonercole.nine.theme.AppTheme
 
 class ConstraintLayoutMargins {
     companion object {

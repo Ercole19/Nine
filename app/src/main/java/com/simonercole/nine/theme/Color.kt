@@ -1,4 +1,4 @@
-package com.simonercole.nine.utils.theme
+package com.simonercole.nine.theme
 
 import androidx.compose.ui.graphics.Color
 

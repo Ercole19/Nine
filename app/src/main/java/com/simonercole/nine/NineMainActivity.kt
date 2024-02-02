@@ -4,8 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
-import com.simonercole.nine.utils.NineNavigationGraph
-import com.simonercole.nine.utils.theme.NineTheme
+import com.simonercole.nine.screens.NineNavigationGraph
+import com.simonercole.nine.theme.NineTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
