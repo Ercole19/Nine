@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(entities = [
-    Game::class]
+    GameEntity::class]
     , version = 1)
 abstract class GameDB: RoomDatabase() {
     companion object{

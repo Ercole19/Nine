@@ -1,42 +1,57 @@
 package com.simonercole.nine.viewmodel
 
 import android.app.Application
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.simonercole.nine.utils.NineGameUtils
+import androidx.navigation.NavHostController
+import com.simonercole.nine.utils.Difficulty
+import com.simonercole.nine.utils.Routes
 
 class FirstScreenViewModel(application: Application) : AndroidViewModel(application) {
 
-    val showDifficulty : MutableLiveData<Boolean> = MutableLiveData(false)
-    val openDialog = MutableLiveData(true)
-    var gameDifficulty = MutableLiveData(NineGameUtils.Difficulty.Easy.toString())
-    val difficultyChosen = MutableLiveData(mutableStateOf(false) )
-    val confirmVisibility = MutableLiveData(mutableFloatStateOf(0f) )
+    private var showDifficulty : MutableLiveData<Boolean> = MutableLiveData(false)
+    val observableShowDifficulty : LiveData<Boolean> = showDifficulty
+
+    private var openDialog = MutableLiveData(true)
+    val observableOpenDialog : LiveData<Boolean> = openDialog
+
+    private var gameDifficulty = Difficulty.Easy.toString()
+
+    private var difficultyChosen = MutableLiveData(false )
+    val observableDifficultyChosen : LiveData<Boolean> = difficultyChosen
+
+    private var confirmVisibility = MutableLiveData(0f )
+    val observableConfirmVisibility : LiveData<Float> = confirmVisibility
 
     fun setShowDifficulty()  {
-        showDifficulty.value = showDifficulty.value!!.not()
+        showDifficulty.value = showDifficulty.value?.not()
     }
 
-    fun changeVisibility() { confirmVisibility.value!!.floatValue = 1f}
+    fun changeVisibility() { confirmVisibility.value = 1f}
     fun changeDifficulty(difficulty: String, easyString : String, mediumString : String) {
-        gameDifficulty.value = when (difficulty) {
-            easyString -> NineGameUtils.Difficulty.Easy.toString()
-            mediumString -> NineGameUtils.Difficulty.Medium.toString()
-            else -> NineGameUtils.Difficulty.Hard.toString()
+        gameDifficulty = when (difficulty) {
+            easyString -> Difficulty.Easy.toString()
+            mediumString -> Difficulty.Medium.toString()
+            else -> Difficulty.Hard.toString()
     }
-        difficultyChosen.value!!.value = difficultyChosen.value!!.value.not()
+        if (difficultyChosen.value == false )difficultyChosen.value = difficultyChosen.value?.not()
 }
-    fun resetValues() {
+     fun handleDialogClosing() {
         showDifficulty.value = false
         openDialog.value = true
-        difficultyChosen.value!!.value = false
-        confirmVisibility.value!!.value = 0f
+        difficultyChosen.value = false
+        confirmVisibility.value = 0f
+    }
+
+    fun navigateGameScreen(navHostController: NavHostController) {
+        navHostController.navigate(Routes.SECOND_SCREEN + "/${gameDifficulty}")
+    }
+
+    fun navigateToPlayedGamesScreen(navHostController: NavHostController) {
+        navHostController.navigate(Routes.PLAYED_GAMES)
     }
 
 

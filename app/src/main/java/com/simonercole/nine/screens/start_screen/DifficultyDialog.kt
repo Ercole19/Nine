@@ -9,11 +9,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Icon
 import androidx.compose.material.RadioButton
@@ -34,8 +31,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import com.simonercole.nine.R
 import com.simonercole.nine.utils.NineGameUtils
-import com.simonercole.nine.utils.Routes
 import com.simonercole.nine.theme.AppTheme
+import com.simonercole.nine.theme.difficultyDialogBackground
+import com.simonercole.nine.theme.iconBtnColor
 import com.simonercole.nine.viewmodel.FirstScreenViewModel
 
 @SuppressLint("UnrememberedMutableInteractionSource")
@@ -44,71 +42,65 @@ fun DifficultyDialog( navHostController: NavHostController, viewModel : FirstScr
     val context = LocalContext.current
     (context as? Activity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
-    val openDialog = viewModel.openDialog.observeAsState()
-    var gameDifficulty = viewModel.gameDifficulty.observeAsState()
-    val difficultyChosen = viewModel.difficultyChosen.observeAsState()
-    val confirmVisibility = viewModel.confirmVisibility.observeAsState()
+    val openDialog = viewModel.observableOpenDialog.observeAsState()
+    val difficultyChosen = viewModel.observableDifficultyChosen.observeAsState()
+    val confirmVisibility = viewModel.observableConfirmVisibility.observeAsState()
 
     val explanation1 = stringResource(id = R.string.Explanation_1)
     val explanation2 = stringResource(id = R.string.Explanation_2)
     val easyString = stringResource(id = R.string.easy_diff)
     val mediumString = stringResource(id = R.string.medium_diff)
+    val hardString = stringResource(id = R.string.hard_diff)
 
 
-    if (difficultyChosen.value!!.value) {
-       viewModel.changeVisibility()
+    if (difficultyChosen.value == true) {
+        viewModel.changeVisibility()
     }
 
 
-    if (openDialog.value!!) {
+    if (openDialog.value == true) {
         AlertDialog(
-            backgroundColor = Color(0xfff8f1e7 ),
+            backgroundColor = difficultyDialogBackground,
             onDismissRequest = {
-                viewModel.resetValues()
+                viewModel.handleDialogClosing()
             },
             title = {
-                androidx.compose.material.Text(
+                Text(
                     text = stringResource(id = R.string.Choose_diff),
                     style = AppTheme.typography.h4,
                     color = Color.Black
                 )
             },
             text = {
-                val radioOptions = listOf(stringResource(id = R.string.easy_diff), stringResource(id = R.string.medium_diff), stringResource(id = R.string.hard_diff))
+                val radioOptions = listOf(easyString, mediumString, hardString)
                 val (selectedOption, onOptionSelected) = remember { mutableStateOf("") }
                 Column(
                     modifier = Modifier
-                        .fillMaxHeight(0.3f)
-                        .padding(start = AppTheme.dimens.small3, top = AppTheme.dimens.medium1),
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Column(Modifier.fillMaxHeight()) {
                         radioOptions.forEach { difficulty ->
-                            Spacer(modifier = Modifier.size(AppTheme.dimens.small2))
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = AppTheme.dimens.small2),
+                                    .padding(vertical = AppTheme.dimens.small1),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
                                     selected = (difficulty == selectedOption),
                                     onClick = {
-                                        viewModel.changeDifficulty(difficulty, easyString, mediumString )
+                                        viewModel.changeDifficulty(difficulty, easyString, mediumString)
                                         onOptionSelected(difficulty)
                                     }
                                 )
                                 Text(
                                     text = difficulty,
                                     style = AppTheme.typography.body2,
-                                    modifier = Modifier.padding(
-                                        top = AppTheme.dimens.small2,
-                                        start = AppTheme.dimens.small2
-                                    )
                                 )
                                 Icon(
                                     imageVector = Icons.Filled.Info,
-                                    contentDescription = "info",
+                                    contentDescription = "Info icon",
                                     modifier = Modifier
                                         .clickable(
                                             interactionSource = MutableInteractionSource(),
@@ -119,40 +111,42 @@ fun DifficultyDialog( navHostController: NavHostController, viewModel : FirstScr
                                                 .makeText(
                                                     context,
                                                     "$explanation1   " + NineGameUtils
-                                                        .getAttempts(difficulty, easyString, mediumString)
+                                                        .getAttempts(
+                                                            difficulty,
+                                                            easyString,
+                                                            mediumString
+                                                        )
                                                         .toString() + "  " + explanation2 + "  " +
                                                             NineGameUtils.getTime(
                                                                 difficulty, easyString, mediumString
                                                             ),
-                                                    Toast.LENGTH_LONG
+                                                    Toast.LENGTH_SHORT
                                                 )
                                                 .show()
                                         }
                                         .padding(
-                                            top = AppTheme.dimens.small2,
                                             start = AppTheme.dimens.medium1
                                         ),
-                                    tint = Color(0xff2d8bba)
+                                    tint = iconBtnColor
                                 )
                             }
                         }
-                    }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.resetValues()
-                        navHostController.navigate(Routes.SECOND_SCREEN + "/${gameDifficulty.value}")
+                        viewModel.handleDialogClosing()
+                        viewModel.navigateGameScreen(navHostController)
                     },
-                    enabled = difficultyChosen.value!!.value,
-                    modifier = Modifier.alpha(confirmVisibility.value!!.floatValue)
+                    enabled = difficultyChosen.value!!,
+                    modifier = Modifier.alpha(confirmVisibility.value!!)
                 ) {
                     Text(stringResource(id = R.string.play), style = AppTheme.typography.h6)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.resetValues()
+                TextButton(onClick = { viewModel.handleDialogClosing()
                 }) {
                     Text(stringResource(id = R.string.back), style = AppTheme.typography.h6)
                 }
@@ -160,7 +154,3 @@ fun DifficultyDialog( navHostController: NavHostController, viewModel : FirstScr
         )
     }
 }
-
-
-
-

@@ -1,108 +1,69 @@
 package com.simonercole.nine.viewmodel
 
 import android.app.Application
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.simonercole.nine.db.Game
+import androidx.navigation.NavHostController
+import com.simonercole.nine.db.GameEntity
 import com.simonercole.nine.db.GameDB
 import com.simonercole.nine.db.GameRepository
-import com.simonercole.nine.utils.NineGameUtils.Companion.parseIt
-import com.simonercole.nine.utils.NineGameUtils.Difficulty
-import com.simonercole.nine.utils.NineGameUtils.GameResult
-import com.simonercole.nine.db.PlayedGame
+import com.simonercole.nine.model.PlayedGameContainer
+import com.simonercole.nine.model.PlayedGame
+import com.simonercole.nine.utils.Difficulty
+import com.simonercole.nine.utils.GameResult
+import com.simonercole.nine.utils.Routes
 
 class PlayedGamesViewModel(application: Application): AndroidViewModel(application) {
-    var chosenDifficulty : MutableLiveData<Difficulty> = MutableLiveData(Difficulty.All)
-    var showBestTimes : MutableLiveData<Boolean> = MutableLiveData(false)
-    var gameResult : MutableLiveData<GameResult> = MutableLiveData(GameResult.ALL)
-    var playedGames = MutableLiveData<MutableList<PlayedGame>>()
-    private var totalPlayedGames : MutableList<PlayedGame>
-    val errorFromDB : MutableLiveData<Boolean> = MutableLiveData(false)
-    val changesMade = MutableLiveData(false)
+    private var playedGameContainer = PlayedGameContainer(GameRepository(GameDB.getInstance(application).getDAO()))
 
-    private val gameRepository : GameRepository
+    private var playedGamesList : MutableLiveData<SnapshotStateList<PlayedGame>> = MutableLiveData(playedGameContainer.playedGames)
+    val observableList : LiveData<SnapshotStateList<PlayedGame>> = playedGamesList
 
+    private var chosenDifficulty : MutableLiveData<Difficulty> = MutableLiveData(playedGameContainer.filter.chosenDifficulty)
+    val observableDifficulty : LiveData<Difficulty> = chosenDifficulty
 
-    init {
-        val gameDB = GameDB.getInstance(application).getDAO()
-        gameRepository = GameRepository(gameDB)
-        playedGames.value = emptyList<PlayedGame>().toMutableList()
-        var totalGames: List<Game> = emptyList()
-        if (gameRepository.getAllGames() == null) errorFromDB.value = errorFromDB.value!!.not()
-        else { totalGames = gameRepository.getAllGames()!!}
-        totalGames.forEach{ game -> playedGames.value!!.add(PlayedGame(parseIt(game.time), true, true, false, game ) ) }
-        totalPlayedGames = playedGames.value!!
-    }
+    private var chosenGameResult : MutableLiveData<GameResult> = MutableLiveData(playedGameContainer.filter.gameResult)
+    val observableGameResult : LiveData<GameResult> = chosenGameResult
+
+    private var sortByBestTimeIsChosen : MutableLiveData<Boolean> = MutableLiveData(playedGameContainer.filter.showBestTimes)
+    val observableSortByBestTimeIsChosen : LiveData<Boolean>  = sortByBestTimeIsChosen
 
     fun setChosenDiff(difficulty: Difficulty) {
-        chosenDifficulty.value = difficulty
+        playedGameContainer.setChosenDiff(difficulty)
+        hardStateChange()
     }
 
     fun setChosenGameResult(filters: GameResult) {
-        gameResult.value = filters
+        playedGameContainer.setChosenGameResult(filters)
+        hardStateChange()
     }
 
     fun filterByBestTime() {
-        showBestTimes.value = showBestTimes.value!!.not()
+        playedGameContainer.filterByBestTime()
+        hardStateChange()
     }
-    fun changesMade(){
-        changesMade.value = changesMade.value!!.not()
-    }
-
-    fun removeGame(game: Game) {
-        playedGames.value = totalPlayedGames.toMutableList()
-        playedGames.value!!.forEach { playedGame ->
-            if (playedGame.game == game) {
-                playedGame.deleted = true
-            }
-        }
-        gameRepository.deleteGame(game)
-        changesMade()
+    fun removeGame(gameEntity: GameEntity) {
+        playedGameContainer.removeGame(gameEntity)
+        hardStateChange()
     }
 
     fun applyFiltersToList() {
-        playedGames.value = totalPlayedGames.toMutableList()
-
-        if (showBestTimes.value == true) {
-            sortByBestTime()
-            changesMade()
-            return
-        }
-        applyDifficultyFilter(chosenDifficulty.value!!)
-        applyResultFilter(gameResult.value!!)
-        changesMade()
+        playedGameContainer.applyFiltersToList()
+        hardStateChange()
     }
 
-    private fun sortByBestTime() {
-        applyResultFilter(GameResult.ONLY_WIN)
-        applyDifficultyFilter(chosenDifficulty.value!!)
-        gameResult.value = GameResult.ALL
-        playedGames.value!!.sortBy{it.timeValue}
+    fun navigateToMainScreen(navHostController: NavHostController) {
+        navHostController.navigate(Routes.NINE_START)
     }
-
-    private fun applyDifficultyFilter(difficulty: Difficulty) {
-        playedGames.value!!.forEach { playedGame ->
-            if (difficulty != Difficulty.All) {
-                playedGame.showElementByDifficulty = playedGame.game.difficulty == difficulty
-            } else  playedGame.showElementByDifficulty = true
-        }
-
-    }
-
-    private fun applyResultFilter(status: GameResult) {
-        playedGames.value!!.forEach { playedGame -> if (status == GameResult.ONLY_WIN ) {
-            playedGame.showElementByResult = playedGame.game.win
-        }
-        else if (status == GameResult.ALL) {
-            playedGame.showElementByResult = true
-        }
-            else {
-            playedGame.showElementByResult = !playedGame.game.win
-
-        }
-        }
+    private fun hardStateChange() {
+        playedGamesList.value  = playedGameContainer.playedGames
+        chosenDifficulty.value = playedGameContainer.filter.chosenDifficulty
+        chosenGameResult.value = playedGameContainer.filter.gameResult
+        sortByBestTimeIsChosen.value = playedGameContainer.filter.showBestTimes
     }
 }
 

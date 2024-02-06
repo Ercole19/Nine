@@ -58,9 +58,15 @@ import androidx.navigation.NavHostController
 import com.simonercole.nine.R
 import com.simonercole.nine.utils.ConstraintLayoutMargins
 import com.simonercole.nine.utils.NineGameUtils
-import com.simonercole.nine.utils.NineGameUtils.GameStatus
-import com.simonercole.nine.utils.Routes
 import com.simonercole.nine.theme.AppTheme
+import com.simonercole.nine.theme.difficultyDialogBackground
+import com.simonercole.nine.theme.distance_one
+import com.simonercole.nine.theme.distance_three
+import com.simonercole.nine.theme.distance_two
+import com.simonercole.nine.theme.fullInputTile
+import com.simonercole.nine.utils.Difficulty
+import com.simonercole.nine.utils.EndRequest
+import com.simonercole.nine.utils.GameStatus
 import com.simonercole.nine.viewmodel.NineGameViewModel
 import com.simonercole.nine.viewmodel.NineGameViewModelFactory
 import kotlinx.coroutines.launch
@@ -69,11 +75,11 @@ import kotlinx.coroutines.launch
 @SuppressLint("RememberReturnType")
 @Composable
 fun SecondScreen(difficulty: String, navController: NavHostController) {
-    val myEnum: NineGameUtils.Difficulty = NineGameUtils.Difficulty.valueOf(difficulty)
+    val myEnum: Difficulty = Difficulty.valueOf(difficulty)
     val context = LocalContext.current
     (context as? Activity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     val viewModel : NineGameViewModel = viewModel(factory = NineGameViewModelFactory(context.applicationContext as Application))
-    if (viewModel.gameStatus.value!!.toString() == "NotStarted") {
+    if (viewModel.getGameStatus().toString() == "NotStarted") {
         viewModel.setUpGame(myEnum)
     }
     SecondScreenPortrait(viewModel = viewModel, navController = navController)
@@ -83,15 +89,14 @@ fun SecondScreen(difficulty: String, navController: NavHostController) {
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostController, lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current) {
-    val focusArray by viewModel.focusArray.observeAsState()
-    val liveInput by viewModel.liveInput.observeAsState()
-    val userAttempts by viewModel.currentAttempts.observeAsState()
-    val sequenceStatus by viewModel.sequenceStatus.observeAsState()
-    val gameStatus by viewModel.gameStatus.observeAsState()
-    val userInputs by viewModel.userGuesses.observeAsState()
-    val timerValue = viewModel.timerValue.observeAsState()
-    val newBestTime by viewModel.newBestTime.observeAsState()
-    val errorFromDB by viewModel.errorFromDB.observeAsState()
+
+    val currentInput by viewModel.observableCurrentInput.observeAsState()
+    val userAttempts by viewModel.observableAttempts.observeAsState()
+    val currentKeyBoard by viewModel.observableCurrentKeyBoard.observeAsState()
+    val gameStatus by viewModel.observableGameStatus.observeAsState()
+    val userInputs by viewModel.observableUserGuesses.observeAsState()
+    val timerValue = viewModel.observableTimerValue.observeAsState()
+    val newBestTime by viewModel.observableNewBestTime.observeAsState()
     val coroutineScope = rememberCoroutineScope()
     val state = rememberLazyListState()
 
@@ -110,46 +115,11 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
         }
     }
 
-    if (errorFromDB!!) {
-        AlertDialog(
-            backgroundColor = Color(0xfffff8dc),
-            onDismissRequest = {
-                viewModel.resetGame()
-                navController.navigate(Routes.NINE_START)
-            },
-            title = {
-                Text(
-                    text = stringResource(id = R.string.ErrorFromDB),
-                    color = Color.Black,
-                    style = AppTheme.typography.body1
-                )
-            },
-            text = {
-                Text(
-                    text = if (gameStatus!! == GameStatus.Won) stringResource(id = R.string.winningMessage) else stringResource(id = R.string.LosingMessage),
-                    style = AppTheme.typography.body1,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center
-                )},
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.resetGame()
-                        navController.navigate(Routes.NINE_START)
-                    },
-                ) {
-                    androidx.compose.material3.Text(stringResource(id = R.string.Confirm), style = AppTheme.typography.body1)
-                }
-            })
-
-    }
-
     if (gameStatus!! == GameStatus.Won || gameStatus!! == GameStatus.Lost) {
         AlertDialog(
             backgroundColor = Color(0xfffff8dc),
             onDismissRequest = {
-                viewModel.resetGame()
-                navController.navigate(Routes.NINE_START)
+
             },
             title = {
                 Text(
@@ -167,7 +137,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 )
                 if (gameStatus!! == GameStatus.Lost) {
                     Text(
-                        text = stringResource(id = R.string.SequenceWas) + "  " + String(viewModel.sequenceToGuess),
+                        text = stringResource(id = R.string.SequenceWas) + "  " + String(viewModel.getSequenceToGuess()),
                         style = AppTheme.typography.body1,
                         color = Color.Black,
                         textAlign = TextAlign.Center,
@@ -177,13 +147,13 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 if (newBestTime!!) {
                     Text(
                         text = stringResource(id = R.string.RecordMessage) + "  " +
-                                when(viewModel.difficulty) {
-                                    NineGameUtils.Difficulty.Easy -> stringResource(id = R.string.easy_diff)
-                                    NineGameUtils.Difficulty.Medium -> stringResource(id = R.string.medium_diff)
+                                when(viewModel.getDifficulty()) {
+                                    Difficulty.Easy -> stringResource(id = R.string.easy_diff)
+                                    Difficulty.Medium -> stringResource(id = R.string.medium_diff)
                                     else -> stringResource(id = R.string.hard_diff)
                                 }
 
-                                + "  :  " + viewModel.userGameTime.value,
+                                + "  :  " + viewModel.getUserGameTime(),
                         style = AppTheme.typography.body1,
                         color = Color.Black,
                         textAlign = TextAlign.Center,
@@ -194,25 +164,24 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.resetGame()
-                        navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
+                        viewModel.navigateToSecondScreen(navController)
                     },
                 ) {
-                    androidx.compose.material3.Text(stringResource(id = R.string.PlayAgain), style = AppTheme.typography.body1)
+                    Text(stringResource(id = R.string.PlayAgain), style = AppTheme.typography.body1)
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    navController.navigate(Routes.NINE_START)
+                    viewModel.navigateToMainMenu(navController)
                 }) {
-                    androidx.compose.material3.Text(stringResource(id = R.string.mainMenu), style = AppTheme.typography.body1)
+                    Text(stringResource(id = R.string.mainMenu), style = AppTheme.typography.body1)
                 }
             })
     }
 
     BackHandler(enabled = true, onBack = {
         if (gameStatus!! == GameStatus.OnGoing) viewModel.quitRequest()
-        else navController.navigate(Routes.NINE_START)
+        else viewModel.navigateToMainMenu(navController)
 
     })
 
@@ -232,27 +201,24 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.getTime()
-                        viewModel.saveGameToDB()
-                        if (viewModel.endRequestFromUser == NineGameUtils.EndRequest.Refresh) navController.navigate(
-                            Routes.SECOND_SCREEN + "/${viewModel.difficulty}"
-                        )
-                        else navController.navigate(Routes.NINE_START)
+                        viewModel.handleQuitGame()
+                        if (viewModel.getEndRequest() == EndRequest.Refresh) viewModel.navigateToSecondScreen(navController)
+                        else viewModel.navigateToMainMenu(navController)
                         viewModel.resetGame()
                     },
                 ) {
-                    androidx.compose.material3.Text(stringResource(id = R.string.endGame), style = AppTheme.typography.body1)
+                    Text(stringResource(id = R.string.endGame), style = AppTheme.typography.body1)
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
                     viewModel.resumeGame()
                 }) {
-                    androidx.compose.material3.Text(stringResource(id = R.string.back), style = AppTheme.typography.body1)
+                    Text(stringResource(id = R.string.back), style = AppTheme.typography.body1)
                 }
             })
     } else if (gameStatus!! == GameStatus.NotStarted) {
-        navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
+        viewModel.navigateToSecondScreen(navController)
     }
 
     Box(
@@ -261,20 +227,19 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
             .fillMaxWidth()
     ) {
         Image(
-            painter = painterResource(id = R.drawable.gambacc),
-            contentDescription = "background",
+            painter = painterResource(id = R.drawable.ninegameboard),
+            contentDescription = "Nine game background",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
-
     }
 
     ConstraintLayout(Modifier.fillMaxSize()) {
         ConstraintLayoutMargins.SetConstraintMargins()
-        val (firstRow, distanceRow, testBox, text, title, refreshButton, timer, backIcon, attempts, seqBox) = createRefs()
+        val (inputRow, distanceRow, userKeyBoardBox, pastGuessesText, title, refreshButton, timer, backIcon, attempts, pastGuessesBox) = createRefs()
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "info",
+            contentDescription = "arrow back",
             modifier = Modifier
                 .constrainAs(backIcon) {
                     top.linkTo(parent.top, ConstraintLayoutMargins.mediumMargin1)
@@ -287,7 +252,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 )
                 {
                     if (gameStatus!! == GameStatus.OnGoing) viewModel.quitRequest()
-                    else navController.navigate(Routes.NINE_START)
+                    else viewModel.navigateToMainMenu(navController)
                 }
                 .size(AppTheme.dimens.medium1),
             tint = Color.Black
@@ -296,7 +261,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
         Icon(
 
             imageVector = Icons.Default.Refresh,
-            contentDescription = "info",
+            contentDescription = "refresh icon",
             modifier = Modifier
                 .constrainAs(refreshButton) {
                     top.linkTo(parent.top, ConstraintLayoutMargins.mediumMargin1)
@@ -308,7 +273,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 )
                 {
                     if (gameStatus!! == GameStatus.OnGoing) viewModel.refreshRequest()
-                    else navController.navigate(Routes.SECOND_SCREEN + "/${viewModel.difficulty}")
+                    else viewModel.navigateToSecondScreen(navController)
                 }
                 .size(AppTheme.dimens.medium1),
             tint = Color.Black
@@ -326,7 +291,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
         )
 
         Text(
-            text = stringResource(id = R.string.attempts) + " : " + userAttempts + "/" + viewModel.maxAttempts,
+            text = stringResource(id = R.string.attempts) + " : " + userAttempts + "/" + viewModel.getMaxAttempts(),
             style = AppTheme.typography.h6,
             modifier = Modifier
                 .constrainAs(attempts) {
@@ -348,15 +313,11 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 .constrainAs(distanceRow) {
                     top.linkTo(parent.top, ConstraintLayoutMargins.buttonHeight)
                     start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                }
-
-        ) {
-        }
+                    end.linkTo(parent.end) }) {}
 
         Row(
             modifier = Modifier
-                .constrainAs(firstRow) {
+                .constrainAs(inputRow) {
                     top.linkTo(distanceRow.bottom, ConstraintLayoutMargins.smallMargin2)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
@@ -370,21 +331,23 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                     modifier = Modifier
                         .size(AppTheme.dimens.tileDimensions)
                         .border(
-                            if (focusArray?.get(i) == 0 && sequenceStatus?.get(i) == 0) 2.dp else 1.dp,
-                            color = if (focusArray?.get(i) == 0 && sequenceStatus?.get(i) == 0) Color.Red else Color.Black,
+                            if (currentInput!![i].isFocused && !currentInput!![i].isGuessed) 2.dp else 1.dp,
+                            color = if (currentInput!![i].isFocused && !currentInput!![i].isGuessed) Color.Red else Color.Black,
                         )
-                        .background(if (liveInput!![i] == ' ') Color.White else Color(0xffA47449))
+                        .background(
+                            if (currentInput!![i].value == ' ') Color.White else fullInputTile
+                        )
                         .clickable {
-                            if (sequenceStatus?.get(i) == 0) {
+                            if (!currentInput!![i].isGuessed) {
                                 viewModel.updateFocusByTouch(i)
-                                viewModel.deleteChar(i)
+                                if (currentInput!![i].value != ' ') viewModel.deleteChar(i)
                             } else viewModel.updateFocusByTouch(i)
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    liveInput?.get(i)?.let {
+                    currentInput?.get(i)?.let {
                         Text(
-                            text = it.toString(),
+                            text = it.value.toString(),
                             style = AppTheme.typography.h6,
                             color = Color.White
                         )
@@ -398,18 +361,19 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
             text = stringResource(id = R.string.PastGuesses),
             style = AppTheme.typography.h6,
             modifier = Modifier
-                .constrainAs(text) {
-                    top.linkTo(firstRow.bottom, ConstraintLayoutMargins.mediumMargin1)
+                .constrainAs(pastGuessesText) {
+                    top.linkTo(inputRow.bottom, ConstraintLayoutMargins.mediumMargin2)
                     start.linkTo(parent.start, ConstraintLayoutMargins.smallMargin1)
+                    bottom.linkTo(pastGuessesBox.top)
                 }
         )
 
         Box(modifier = Modifier
-            .constrainAs(seqBox) {
-                top.linkTo(text.bottom, ConstraintLayoutMargins.smallMargin3)
+            .constrainAs(pastGuessesBox) {
+                top.linkTo(pastGuessesText.bottom, ConstraintLayoutMargins.smallMargin3)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
-                bottom.linkTo(testBox.top, ConstraintLayoutMargins.mediumMargin1)
+                bottom.linkTo(userKeyBoardBox.top, ConstraintLayoutMargins.mediumMargin1)
             }
             .background(Color.White, RoundedCornerShape(AppTheme.dimens.small1))
             .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))
@@ -450,9 +414,9 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                                                 else {
                                                     when (it[i]?.first.toString()) {
                                                         "0" -> Color.Green
-                                                        "1" -> Color(0xff014462)
-                                                        "2" -> Color(0xffadd8e6)
-                                                        "3" -> Color(0xffFFA500)
+                                                        "1" -> distance_one
+                                                        "2" -> distance_two
+                                                        "3" -> distance_three
                                                         else -> Color.Red
                                                     }
                                                 }
@@ -498,7 +462,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
 
 
         Box(modifier = Modifier
-            .constrainAs(testBox) {
+            .constrainAs(userKeyBoardBox) {
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
                 bottom.linkTo(parent.bottom)
@@ -509,21 +473,21 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
 
 
             ConstraintLayout {
-                val (inputTop, inputBottom, confirm) = createRefs()
+                val (inputTop, inputBottom, confirmBtn) = createRefs()
 
-                if (!liveInput!!.contains(' ')) {
+                if (viewModel.isInputFull()) {
                     Card(onClick = {
                         viewModel.makeGuess()
                     },
                         modifier = Modifier
-                            .constrainAs(confirm) {
-                                top.linkTo(testBox.bottom, ConstraintLayoutMargins.mediumMargin3)
+                            .constrainAs(confirmBtn) {
+                                top.linkTo(userKeyBoardBox.bottom, ConstraintLayoutMargins.mediumMargin3)
                                 start.linkTo(parent.start, ConstraintLayoutMargins.smallMargin1)
                                 end.linkTo(parent.end, ConstraintLayoutMargins.smallMargin1)
                                 bottom.linkTo(parent.bottom)
                             }
                             .size(AppTheme.dimens.logoSize, AppTheme.dimens.medium3),
-                        backgroundColor = Color(0xfff8f1e7),
+                        backgroundColor = difficultyDialogBackground,
                         shape = RoundedCornerShape(AppTheme.dimens.small3),
                         elevation = AppTheme.dimens.small1
                     )
@@ -547,9 +511,10 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 Row(
                     modifier = Modifier
                         .constrainAs(inputTop) {
-                            top.linkTo(testBox.bottom, ConstraintLayoutMargins.mediumMargin2)
+                            top.linkTo(userKeyBoardBox.bottom, ConstraintLayoutMargins.mediumMargin1)
                             start.linkTo(parent.start, ConstraintLayoutMargins.smallMargin1)
                             end.linkTo(parent.end, ConstraintLayoutMargins.smallMargin1)
+                            bottom.linkTo(inputBottom.top)
                         }
                         .fillMaxWidth()
                         .padding(start = AppTheme.dimens.small1, end = AppTheme.dimens.small2),
@@ -558,26 +523,18 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 ) {
 
                     for (i in 0..4) {
-                        if (liveInput?.contains(viewModel.startingKeyboard[i])
-                                ?.not() == true && viewModel.guessedChars.contains(viewModel.startingKeyboard[i])
-                                .not()
-                        ) {
-
+                        if (currentKeyBoard!![i].isVisible && !currentKeyBoard!![i].isGuessed) {
                             Box(
                                 modifier = Modifier
                                     .size(AppTheme.dimens.medium2)
                                     .clickable {
-                                        focusArray
-                                            ?.indexOf(0)
-                                            ?.let {
-                                                viewModel.updateInput(
-                                                    it,
-                                                    viewModel.startingKeyboard[i]
-                                                )
-                                            }
+                                        viewModel.updateInput(
+                                            viewModel.getCurrentFocus(),
+                                            currentKeyBoard!![i].value
+                                        )
                                     }
                                     .background(
-                                        Color(0xffA47449),
+                                        fullInputTile,
                                         shape = RoundedCornerShape(AppTheme.dimens.small1)
                                     )
                                     .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))
@@ -590,7 +547,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                             )
                             {
                                 Text(
-                                    text = viewModel.startingKeyboard[i].toString(),
+                                    text = currentKeyBoard!![i].value.toString(),
                                     style = AppTheme.typography.h6,
                                     color = Color.White,
                                     fontWeight = FontWeight.SemiBold
@@ -620,6 +577,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                             top.linkTo(inputTop.bottom, ConstraintLayoutMargins.mediumMargin2)
                             start.linkTo(parent.start, ConstraintLayoutMargins.smallMargin3)
                             end.linkTo(parent.end, ConstraintLayoutMargins.smallMargin2)
+                            bottom.linkTo(parent.bottom, ConstraintLayoutMargins.smallMargin3)
                         }
                         .fillMaxWidth()
                         .padding(start = AppTheme.dimens.medium2, end = AppTheme.dimens.medium2),
@@ -628,26 +586,20 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 ) {
 
                     for (i in 5..8) {
-                        if (liveInput?.contains(viewModel.startingKeyboard[i])
-                                ?.not() == true && viewModel.guessedChars.contains(viewModel.startingKeyboard[i])
-                                .not()
+                        if (currentKeyBoard!![i].isVisible && !currentKeyBoard!![i].isGuessed
                         ) {
 
                             Box(
                                 modifier = Modifier
                                     .size(AppTheme.dimens.medium2)
                                     .clickable {
-                                        focusArray
-                                            ?.indexOf(0)
-                                            ?.let {
-                                                viewModel.updateInput(
-                                                    it,
-                                                    viewModel.startingKeyboard[i]
-                                                )
-                                            }
+                                        viewModel.updateInput(
+                                            viewModel.getCurrentFocus(),
+                                            currentKeyBoard!![i].value
+                                        )
                                     }
                                     .background(
-                                        Color(0xffA47449),
+                                        fullInputTile,
                                         shape = RoundedCornerShape(AppTheme.dimens.small1)
                                     )
                                     .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))
@@ -660,7 +612,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                             )
                             {
                                 Text(
-                                    text = viewModel.startingKeyboard[i].toString(),
+                                    text = currentKeyBoard!![i].value.toString(),
                                     style = AppTheme.typography.h6,
                                     color = Color.White,
                                     fontWeight = FontWeight.SemiBold
@@ -679,10 +631,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                                         2.dp,
                                         Color.Transparent,
                                         shape = RoundedCornerShape(AppTheme.dimens.small1)
-                                    ))
-                        }
-
-                    }
+                                    )) } }
                 }
 
             }

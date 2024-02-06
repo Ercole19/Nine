@@ -30,7 +30,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.simonercole.nine.R
 import com.simonercole.nine.utils.ConstraintLayoutMargins
-import com.simonercole.nine.utils.Routes
 import com.simonercole.nine.theme.AppTheme
 import com.simonercole.nine.theme.btnColor
 import com.simonercole.nine.theme.startColor
@@ -58,9 +57,9 @@ fun NineStart(navController: NavHostController) {
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun NineStartPortrait(navController: NavHostController, viewModel: FirstScreenViewModel) {
-    val showDifficulty by viewModel.showDifficulty.observeAsState()
+    val showDifficulty by viewModel.observableShowDifficulty.observeAsState()
 
-    if (showDifficulty!!) {
+    if (showDifficulty == true) {
         DifficultyDialog(navController, viewModel)
     }
 
@@ -68,8 +67,8 @@ fun NineStartPortrait(navController: NavHostController, viewModel: FirstScreenVi
         .fillMaxHeight(0.8f)
         .fillMaxWidth()) {
         Image(
-            painter = painterResource(id =  R.drawable.letters),
-            contentDescription = "background",
+            painter = painterResource(id =  R.drawable.mainscreenbackground),
+            contentDescription = "Main screen background",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
@@ -103,13 +102,13 @@ fun NineStartPortrait(navController: NavHostController, viewModel: FirstScreenVi
             )
         ) {
             ConstraintLayout(Modifier.fillMaxSize()) {
-                val (text1, text2, bt1, bt2) = createRefs()
+                val (textNine, textNineDescription, btnPlayGame, btnPlayedGames) = createRefs()
 
                 Text(
                     text = stringResource(id = R.string.app_name),
                     style = AppTheme.typography.h1,
                     modifier = Modifier
-                        .constrainAs(text1) {
+                        .constrainAs(textNine) {
                             top.linkTo(box.top)
                             start.linkTo(parent.start)
 
@@ -120,22 +119,23 @@ fun NineStartPortrait(navController: NavHostController, viewModel: FirstScreenVi
                 )
 
                 Text(
-                        text = stringResource(id = R.string.text_intro),
-                        style = AppTheme.typography.h4,
-                        modifier = Modifier
-                            .constrainAs(text2) {
-                                top.linkTo(box.top, ConstraintLayoutMargins.mediumMargin2)
-                                start.linkTo(parent.start)
-                            }
-                            .padding(AppTheme.dimens.small3)
+                    text = stringResource(id = R.string.text_intro),
+                    style = AppTheme.typography.h4,
+                    modifier = Modifier
+                        .constrainAs(textNineDescription) {
+                            top.linkTo(box.top, ConstraintLayoutMargins.mediumMargin2)
+                            start.linkTo(parent.start)
+                        }
+                        .padding(AppTheme.dimens.small3)
 
-                    )
+                )
 
                 Card(onClick = { viewModel.setShowDifficulty() }, modifier = Modifier
-                    .constrainAs(bt1) {
+                    .constrainAs(btnPlayGame) {
                         start.linkTo(parent.start, ConstraintLayoutMargins.smallMargin1)
-                        end.linkTo(bt2.start, ConstraintLayoutMargins.smallMargin1)
-                        top.linkTo(text2.bottom, ConstraintLayoutMargins.mediumMargin2)
+                        end.linkTo(btnPlayedGames.start, ConstraintLayoutMargins.smallMargin1)
+                        top.linkTo(textNineDescription.bottom, ConstraintLayoutMargins.smallMargin3)
+                        bottom.linkTo(parent.bottom, ConstraintLayoutMargins.mediumMargin1)
                     }
                     .size(AppTheme.dimens.buttonHeight, AppTheme.dimens.medium2),
                     backgroundColor = btnColor,
@@ -159,12 +159,13 @@ fun NineStartPortrait(navController: NavHostController, viewModel: FirstScreenVi
                     }
                 }
                 Card(onClick = {
-                    navController.navigate(Routes.PLAYED_GAMES)
+                    viewModel.navigateToPlayedGamesScreen(navController)
                 }, modifier = Modifier
-                    .constrainAs(bt2) {
-                        start.linkTo(bt1.end, margin = ConstraintLayoutMargins.smallMargin1)
+                    .constrainAs(btnPlayedGames) {
+                        start.linkTo(btnPlayGame.end, margin = ConstraintLayoutMargins.smallMargin1)
                         end.linkTo(parent.end)
-                        top.linkTo(text2.bottom, margin = ConstraintLayoutMargins.mediumMargin2)
+                        top.linkTo(textNineDescription.bottom, margin = ConstraintLayoutMargins.smallMargin3)
+                        bottom.linkTo(parent.bottom, ConstraintLayoutMargins.mediumMargin1)
                     }
                     .size(AppTheme.dimens.buttonHeight, AppTheme.dimens.medium2),
                     backgroundColor = btnColor,

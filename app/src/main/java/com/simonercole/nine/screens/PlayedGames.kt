@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -47,7 +45,6 @@ import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,10 +56,10 @@ import com.simonercole.nine.viewmodel.PlayedGamesViewModel
 import com.simonercole.nine.theme.AppTheme
 import com.simonercole.nine.theme.no_cell
 import com.simonercole.nine.theme.ok_cell
+import com.simonercole.nine.utils.Difficulty
+import com.simonercole.nine.utils.GameResult
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import com.simonercole.nine.utils.NineGameUtils.GameResult
-import com.simonercole.nine.utils.NineGameUtils.Difficulty
 import com.simonercole.nine.utils.Routes
 
 @SuppressLint("RememberReturnType")
@@ -84,49 +81,12 @@ fun PlayedGames(
     val formatterDate = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     val formatterTime = DateTimeFormatter.ofPattern("HH:mm")
     var expanded by remember { mutableStateOf(false) }
-    val chosenDifficulty by viewModel.chosenDifficulty.observeAsState()
-    val showBestTimes by viewModel.showBestTimes.observeAsState()
-    val gameResult by viewModel.gameResult.observeAsState()
-    val playedGames by viewModel.playedGames.observeAsState()
-    val errorFromDB by viewModel.errorFromDB.observeAsState()
-    val changesMade by viewModel.changesMade.observeAsState()
+    val chosenDifficulty by viewModel.observableDifficulty.observeAsState()
+    val showBestTimes by viewModel.observableSortByBestTimeIsChosen.observeAsState()
+    val gameResult by viewModel.observableGameResult.observeAsState()
+    val playedGames by viewModel.observableList.observeAsState()
 
-    BackHandler(enabled = true, onBack = { navController.navigate(Routes.NINE_START) })
-
-    if (changesMade!!) viewModel.changesMade()
-
-    if (errorFromDB!!) {
-        AlertDialog(
-            backgroundColor = Color(0xfffff8dc),
-            onDismissRequest = {
-                navController.navigate(Routes.NINE_START)
-            },
-            title = {
-                androidx.compose.material.Text(
-                    text = stringResource(id = R.string.Error),
-                    color = Color.Black,
-                    style = AppTheme.typography.body1
-                )
-            },
-            text = {
-                androidx.compose.material.Text(
-                    text = stringResource(id = R.string.ErrorFromDB),
-                    style = AppTheme.typography.body1,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        navController.navigate(Routes.NINE_START)
-                    },
-                ) {
-                    Text(stringResource(id = R.string.Confirm), style = AppTheme.typography.body1)
-                }
-            })
-
-    }
+    BackHandler(enabled = true, onBack = { viewModel.navigateToMainScreen(navController) })
 
     Scaffold(
         topBar = {
@@ -181,12 +141,12 @@ fun PlayedGames(
                 }
             )
         }
-    ) { paddingValues ->
+    ) { innerPadding ->
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(paddingValues)
+                .padding(innerPadding)
                 .wrapContentSize(Alignment.TopEnd),
         ) {
             CascadeDropdownMenu(
@@ -310,16 +270,19 @@ fun PlayedGames(
 
         }
 
-        ConstraintLayout {
+        ConstraintLayout(
+            Modifier
+                .fillMaxWidth()
+                .padding(innerPadding)) {
             ConstraintLayoutMargins.SetConstraintMargins()
             val (box) = createRefs()
 
             Box(modifier = Modifier
                 .constrainAs(box) {
-                    top.linkTo(parent.top, ConstraintLayoutMargins.mediumMargin3 * 3)
+                    top.linkTo(parent.top)
                     end.linkTo(parent.end)
                     start.linkTo(parent.start)
-                    bottom.linkTo(parent.bottom, ConstraintLayoutMargins.mediumMargin3)
+                    bottom.linkTo(parent.bottom)
                 }
                 .fillMaxHeight()
                 .fillMaxWidth()
@@ -390,13 +353,13 @@ fun PlayedGames(
 
                                         }
                                         Column(Modifier.padding(AppTheme.dimens.small1)) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "Delete",
-                                                Modifier.clickable {
-                                                    viewModel.removeGame(game = playedGame.game)
+                                            IconButton(
+                                                onClick = {
+                                                    viewModel.removeGame(playedGame.game)
                                                 }
-                                            )
+                                            ) {
+                                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+                                            }
                                         }
                                     }
                                 }
