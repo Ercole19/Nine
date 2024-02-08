@@ -6,8 +6,7 @@ import com.simonercole.nine.db.GameEntity
 import com.simonercole.nine.db.GameRepository
 import com.simonercole.nine.utils.Difficulty
 import com.simonercole.nine.utils.GameResult
-import com.simonercole.nine.utils.NineGameUtils
-import com.simonercole.nine.utils.NineGameUtils.Companion.parseIt
+import com.simonercole.nine.viewmodel.PlayedGamesViewModel
 
 data class PlayedGame(
     var timeValue :Int,
@@ -17,8 +16,8 @@ data class PlayedGame(
     var game : GameEntity
 )
 
-class PlayedGameContainer(gameRepository: GameRepository)  {
-    private var playedGamesRepository : GameRepository = gameRepository
+class PlayedGameContainer(viewModel: PlayedGamesViewModel)  {
+    private var playedGamesRepository : GameRepository = viewModel.getRepo()
     private var totalPlayedGames : SnapshotStateList<PlayedGame>
     var playedGames: SnapshotStateList<PlayedGame> = emptyList<PlayedGame>().toMutableStateList()
     var filter: Filter = Filter()
@@ -28,7 +27,7 @@ class PlayedGameContainer(gameRepository: GameRepository)  {
         tempList.forEach { game ->
             playedGames.add(
                 PlayedGame(
-                    parseIt(game.time),
+                    game.timerValue,
                     true,
                     true,
                     false,

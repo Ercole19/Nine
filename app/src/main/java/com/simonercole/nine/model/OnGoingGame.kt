@@ -45,27 +45,20 @@ class OnGoingGame(private var gameRepository: GameRepository) {
             time = userGameTime,
             dateTime = LocalDateTime.now().toString(),
             win = gameStatus == GameStatus.Won,
+            timerValue = parseTimerValueToIntValue(userGameTime)
         )
         gameRepository.saveToDB(gameEntity)
     }
 
-    fun resetGame() {
-        gameStatus = GameStatus.NotStarted
-    }
+    fun resetGameStatus() { gameStatus = GameStatus.NotStarted }
+    fun pauseGameStatus() { gameStatus = GameStatus.Paused }
+    fun resumeGameStatus() { gameStatus = GameStatus.OnGoing }
 
-    fun userChangeActivityMidGame() {
-        gameStatus = GameStatus.Paused
-    }
 
-    fun quitRequest() {
-        gameStatus = GameStatus.Paused
+    fun parseTimerValueToIntValue(time: String): Int {
+        val firstOne = time.substring(0, 2)
+        val secondOne = time.substring(5, 7)
+        val result = firstOne + secondOne
+        return result.toInt()
     }
-    fun refreshRequest() {
-        gameStatus = GameStatus.Paused
-    }
-
-    fun resumeGame() {
-        gameStatus = GameStatus.OnGoing
-    }
-
 }

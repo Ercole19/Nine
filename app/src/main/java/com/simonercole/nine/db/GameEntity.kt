@@ -20,4 +20,6 @@ data class GameEntity(
     var dateTime: String,
     @ColumnInfo(name = "win")
     var win : Boolean,
+    @ColumnInfo(name = "TimerValue")
+    var timerValue : Int
 )

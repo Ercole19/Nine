@@ -1,6 +1,7 @@
 package com.simonercole.nine.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -18,7 +19,7 @@ import com.simonercole.nine.utils.GameResult
 import com.simonercole.nine.utils.Routes
 
 class PlayedGamesViewModel(application: Application): AndroidViewModel(application) {
-    private var playedGameContainer = PlayedGameContainer(GameRepository(GameDB.getInstance(application).getDAO()))
+    private var playedGameContainer = PlayedGameContainer(this)
 
     private var playedGamesList : MutableLiveData<SnapshotStateList<PlayedGame>> = MutableLiveData(playedGameContainer.playedGames)
     val observableList : LiveData<SnapshotStateList<PlayedGame>> = playedGamesList
@@ -31,6 +32,10 @@ class PlayedGamesViewModel(application: Application): AndroidViewModel(applicati
 
     private var sortByBestTimeIsChosen : MutableLiveData<Boolean> = MutableLiveData(playedGameContainer.filter.showBestTimes)
     val observableSortByBestTimeIsChosen : LiveData<Boolean>  = sortByBestTimeIsChosen
+
+    fun getRepo(): GameRepository {
+        return GameRepository(GameDB.getInstance(getApplication() as Context).getDAO())
+    }
 
     fun setChosenDiff(difficulty: Difficulty) {
         playedGameContainer.setChosenDiff(difficulty)

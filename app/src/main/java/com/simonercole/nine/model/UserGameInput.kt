@@ -5,15 +5,12 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import com.simonercole.nine.utils.Difficulty
-import com.simonercole.nine.utils.NineGameUtils
 
 
-class UserInput {
+class UserGameInput {
 
     var currentInput : SnapshotStateList<GameTile> = mutableStateListOf(*Array(9) { GameTile() })
-    var allGuesses : SnapshotStateList<HashMap<Int, Pair<String, Char>>> = mutableStateListOf(
-        HashMap()
-    )
+    var allGuesses : SnapshotStateList<HashMap<Int, Pair<String, Char>>> = mutableStateListOf(HashMap())
     var gameKeyboard : SnapshotStateList<KeyboardTile> = mutableStateListOf(*Array(9) { KeyboardTile() })
 
     fun initInput() {
@@ -46,9 +43,9 @@ class UserInput {
     }
 
     fun updateFocusByTouch(index: Int) {
-        currentInput[getCurrentFocusIndex()].isFocused = false
         val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
+        if (getCurrentFocusIndex() != -1 ) newInput[getCurrentFocusIndex()].isFocused = false
         if (!newInput[index].isGuessed) {
             newInput[index].isFocused = true
             currentInput = newInput
@@ -70,7 +67,7 @@ class UserInput {
         }
     }
 
-    fun deleteChar(index: Int) {
+    fun clearGameTile(index: Int) {
         val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
         gameKeyboard[getKeyBoardTile(currentInput[index].value)].isVisible = true

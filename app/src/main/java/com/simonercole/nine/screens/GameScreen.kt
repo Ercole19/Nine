@@ -57,7 +57,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.simonercole.nine.R
 import com.simonercole.nine.utils.ConstraintLayoutMargins
-import com.simonercole.nine.utils.NineGameUtils
 import com.simonercole.nine.theme.AppTheme
 import com.simonercole.nine.theme.difficultyDialogBackground
 import com.simonercole.nine.theme.distance_one
@@ -300,7 +299,7 @@ fun SecondScreenPortrait(viewModel: NineGameViewModel, navController: NavHostCon
                 })
 
         Text(
-            text = NineGameUtils.getTimerLabel(timerValue.value!!.value),
+            text = viewModel.getTimerLabel(timerValue.value!!.value),
             style = AppTheme.typography.h6,
             modifier = Modifier
                 .constrainAs(timer) {

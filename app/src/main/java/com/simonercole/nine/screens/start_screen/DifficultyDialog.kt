@@ -30,7 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import com.simonercole.nine.R
-import com.simonercole.nine.utils.NineGameUtils
 import com.simonercole.nine.theme.AppTheme
 import com.simonercole.nine.theme.difficultyDialogBackground
 import com.simonercole.nine.theme.iconBtnColor
@@ -107,19 +106,12 @@ fun DifficultyDialog( navHostController: NavHostController, viewModel : FirstScr
                                             indication = null,
                                         )
                                         {
+                                            val valuesToShow = viewModel.getToastValuesToShow(difficulty, easyString, mediumString)
                                             Toast
                                                 .makeText(
                                                     context,
-                                                    "$explanation1   " + NineGameUtils
-                                                        .getAttempts(
-                                                            difficulty,
-                                                            easyString,
-                                                            mediumString
-                                                        )
-                                                        .toString() + "  " + explanation2 + "  " +
-                                                            NineGameUtils.getTime(
-                                                                difficulty, easyString, mediumString
-                                                            ),
+                                                    "$explanation1   " + valuesToShow.first
+                                                        .toString() + "  " + explanation2 + "  " + valuesToShow.second,
                                                     Toast.LENGTH_SHORT
                                                 )
                                                 .show()

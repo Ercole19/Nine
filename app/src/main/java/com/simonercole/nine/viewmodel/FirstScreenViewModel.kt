@@ -54,6 +54,13 @@ class FirstScreenViewModel(application: Application) : AndroidViewModel(applicat
         navHostController.navigate(Routes.PLAYED_GAMES)
     }
 
+    fun getToastValuesToShow(difficulty: String, easyString: String, mediumString: String) : Pair<Int, String> {
+        return when(difficulty) {
+             easyString -> Pair(4, "01 : 40")
+             mediumString -> Pair(4, "01 : 20")
+             else -> Pair(3, "00 : 50")
+        }
+    }
 
 @Suppress("UNCHECKED_CAST")
 class FirstScreenFactory(private val application: Application) : ViewModelProvider.Factory {

@@ -1,16 +1,12 @@
 package com.simonercole.nine.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.simonercole.nine.screens.start_screen.NineStart
-import com.simonercole.nine.utils.NineGameUtils
 import com.simonercole.nine.utils.Routes
 
 @Composable

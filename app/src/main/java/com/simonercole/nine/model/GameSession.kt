@@ -1,10 +1,11 @@
 package com.simonercole.nine.model
 
-import com.simonercole.nine.db.GameRepository
+import android.content.Context
+import com.simonercole.nine.R
 import com.simonercole.nine.utils.Difficulty
 import com.simonercole.nine.utils.EndRequest
 import com.simonercole.nine.utils.GameStatus
-import com.simonercole.nine.utils.NineGameUtils
+import com.simonercole.nine.viewmodel.NineGameViewModel
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -14,11 +15,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class GameSession(gameRepository: GameRepository) {
+class GameSession(private val viewModel: NineGameViewModel) {
     var newBestTime : Boolean = false
     private var job: Job? = null
-    var game : OnGoingGame = OnGoingGame(gameRepository)
-    var userInput : UserInput = UserInput()
+    var game : OnGoingGame = OnGoingGame(viewModel.getRepo())
+    var userInput : UserGameInput = UserGameInput()
     var endRequestFromUser  : EndRequest =  EndRequest.None
     var sequenceToGuess: CharArray = CharArray(9) {' '}
 
@@ -70,14 +71,14 @@ class GameSession(gameRepository: GameRepository) {
     }
 
     fun updateInput(index: Int, char: Char) {userInput.updateInput(index, char)}
-    fun deleteChar(index :Int) { userInput.deleteChar(index) }
+    fun deleteChar(index :Int) { userInput.clearGameTile(index) }
 
     private fun checkGameStatus() {
-        game.userGameTime = NineGameUtils.getTimerLabel(game.totalTime - game.timerValue.value)
+        game.userGameTime = getTimerLabel(game.totalTime - game.timerValue.value)
         if (game.attempts == game.maxAttempts) {
             if (userInput.isInputAllCorrect()) {
                 pauseTimer()
-                if (NineGameUtils.parseIt(game.bestTime!!) > NineGameUtils.parseIt(game.userGameTime)) {
+                if (game.parseTimerValueToIntValue(game.bestTime!!) > game.parseTimerValueToIntValue(game.userGameTime)) {
                     game.bestTime = game.userGameTime
                     newBestTime = true
                 }
@@ -91,7 +92,7 @@ class GameSession(gameRepository: GameRepository) {
         } else {
             if (userInput.isInputAllCorrect()) {
                 pauseTimer()
-                if (NineGameUtils.parseIt(game.bestTime!!) > NineGameUtils.parseIt(game.userGameTime)) {
+                if (game.parseTimerValueToIntValue(game.bestTime!!) > game.parseTimerValueToIntValue(game.userGameTime)) {
                     game.bestTime = game.userGameTime
                     newBestTime = true
                 }
@@ -105,43 +106,58 @@ class GameSession(gameRepository: GameRepository) {
         job?.cancel()
     }
     private fun createSequenceToGuess(): CharArray {
-        return NineGameUtils.symbols.toList().shuffled().take(9).joinToString("").toCharArray()
+        val charArray = CharArray(9)
+        val context: Context? = viewModel.getContext()
+        val inputStream = context?.resources?.openRawResource(R.raw.symbols)?.bufferedReader()?.readLines()
+        val selectedSymbols = inputStream!!.shuffled().take(9)
+        selectedSymbols.forEachIndexed { index, s ->
+            charArray[index] = s.substring(2).toInt(16).toChar()
+        }
+        return charArray
     }
 
     private fun timerExpired() {
         game.gameStatus = GameStatus.Lost
-        game.userGameTime = NineGameUtils.getTimerLabel(game.totalTime - game.timerValue.value)
+        game.userGameTime = getTimerLabel(game.totalTime - game.timerValue.value)
         game.saveGameToDB()
+        viewModel.timerExpired()
     }
 
     fun resetGame() {
-        game.resetGame()
+        game.resetGameStatus()
     }
 
     fun userChangeActivityMidGame() {
         pauseTimer()
-        game.userChangeActivityMidGame()
+        game.pauseGameStatus()
     }
 
-    fun quitRequest() {
+    fun quitRequestFromUser() {
         pauseTimer()
         endRequestFromUser = EndRequest.Quit
-        game.quitRequest()
+        game.pauseGameStatus()
     }
-    fun refreshRequest() {
+    fun refreshRequestFromUser() {
         pauseTimer()
         endRequestFromUser = EndRequest.Refresh
-        game.refreshRequest()
+        game.pauseGameStatus()
     }
 
     fun resumeGame() {
         endRequestFromUser = EndRequest.None
-        game.resumeGame()
+        game.resumeGameStatus()
         startTimer()
     }
     fun handleQuitGame() {
-        game.userGameTime = NineGameUtils.getTimerLabel(game.totalTime - game.timerValue.value)
+        game.userGameTime = getTimerLabel(game.totalTime - game.timerValue.value)
         game.saveGameToDB()
+    }
+
+
+    private fun padding(value: Int) = if (value < 10) ("0$value") else "" + value
+
+    fun getTimerLabel(value: Int): String {
+        return "${padding(value / 60)} : ${padding(value % 60)}"
     }
 
     fun isInputFull() : Boolean {

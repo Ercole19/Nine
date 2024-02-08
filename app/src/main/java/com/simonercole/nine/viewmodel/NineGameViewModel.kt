@@ -1,6 +1,7 @@
 package com.simonercole.nine.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.AndroidViewModel
@@ -20,7 +21,7 @@ import com.simonercole.nine.utils.GameStatus
 import com.simonercole.nine.utils.Routes
 
 class NineGameViewModel(application: Application): AndroidViewModel(application) {
-    private var gameSession = GameSession(GameRepository(GameDB.getInstance(application).getDAO()))
+    private var gameSession = GameSession(this)
 
     private var userGuessesLiveData : MutableLiveData<SnapshotStateList<HashMap<Int, Pair<String, Char>>>> = MutableLiveData(gameSession.userInput.allGuesses)
     val observableUserGuesses : LiveData<SnapshotStateList<HashMap<Int, Pair<String, Char>>>> = userGuessesLiveData
@@ -42,6 +43,10 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
 
     private var gameStatusLiveData : MutableLiveData<GameStatus> = MutableLiveData(gameSession.game.gameStatus)
     val observableGameStatus : LiveData<GameStatus> = gameStatusLiveData
+
+    fun getRepo() : GameRepository {
+        return GameRepository(GameDB.getInstance(getApplication() as Context).getDAO())
+    }
 
     fun setUpGame(diff: Difficulty) {
         gameSession.setUpGame(diff)
@@ -80,11 +85,11 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
     }
 
     fun quitRequest() {
-        gameSession.quitRequest()
+        gameSession.quitRequestFromUser()
         hardUpdateStates(gameSession)
     }
     fun refreshRequest() {
-        gameSession.refreshRequest()
+        gameSession.refreshRequestFromUser()
         hardUpdateStates(gameSession)
     }
 
@@ -135,6 +140,19 @@ class NineGameViewModel(application: Application): AndroidViewModel(application)
     fun navigateToMainMenu(navController: NavHostController) {
         navController.navigate(Routes.NINE_START)
     }
+
+    fun getTimerLabel(timerValue : Int) : String {
+        return gameSession.getTimerLabel(timerValue)
+    }
+
+    fun timerExpired() {
+        hardUpdateStates(gameSession)
+    }
+
+    fun getContext(): Context? {
+        return getApplication<Application>().applicationContext
+    }
+
 
     private fun hardUpdateStates(session : GameSession) {
         userGuessesLiveData.value = session.userInput.allGuesses

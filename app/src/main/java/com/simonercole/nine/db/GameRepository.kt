@@ -28,9 +28,7 @@ class GameRepository(private val gameDAO: GameDAO) {
         fun getAllGames(): List<GameEntity>? {
             var totalGameEntities: List<GameEntity>? = null
             val job = CoroutineScope(Dispatchers.IO).launch {
-                totalGameEntities = if (gameDAO.getAllGames().isNotEmpty()) {
-                    gameDAO.getAllGames()
-                } else emptyList()
+                totalGameEntities = gameDAO.getAllGames().ifEmpty { emptyList() }
             }
             runBlocking { job.join() }
             return totalGameEntities
