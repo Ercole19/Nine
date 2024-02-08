@@ -1,18 +1,24 @@
 package com.simonercole.nine.model
 
-import android.annotation.SuppressLint
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import com.simonercole.nine.utils.Difficulty
 
-
+/**
+ * Manages user input and game tiles.
+ */
 class UserGameInput {
+    // The current user input.
+    var currentInput: SnapshotStateList<GameTile> = mutableStateListOf(*Array(9) { GameTile() })
+    // All user guesses.
+    var allGuesses: SnapshotStateList<HashMap<Int, Pair<String, Char>>> = mutableStateListOf(HashMap())
+    // The game keyboard.
+    var gameKeyboard: SnapshotStateList<KeyboardTile> = mutableStateListOf(*Array(9) { KeyboardTile() })
 
-    var currentInput : SnapshotStateList<GameTile> = mutableStateListOf(*Array(9) { GameTile() })
-    var allGuesses : SnapshotStateList<HashMap<Int, Pair<String, Char>>> = mutableStateListOf(HashMap())
-    var gameKeyboard : SnapshotStateList<KeyboardTile> = mutableStateListOf(*Array(9) { KeyboardTile() })
-
+    /**
+     * Initializes the user input.
+     */
     fun initInput() {
         for (i in 0..8) {
             currentInput[i].value = ' '
@@ -22,8 +28,11 @@ class UserGameInput {
         }
     }
 
+    /**
+     * Clears the user input.
+     */
     fun clearInput() {
-        val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
+        val newInput: SnapshotStateList<GameTile> = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
         for (i in 0..8) {
             if (!newInput[i].isGuessed) {
@@ -34,32 +43,44 @@ class UserGameInput {
         currentInput = newInput
     }
 
+    /**
+     * Gets the index of the currently focused input.
+     * @return The index of the focused input.
+     */
     fun getCurrentFocusIndex(): Int {
-        var currentFocusIndex : Int = -1
+        var currentFocusIndex: Int = -1
         for (i in 0..8) {
             if (currentInput[i].isFocused) currentFocusIndex = i
         }
         return currentFocusIndex
     }
 
+    /**
+     * Updates the focus based on user touch.
+     * @param index The index touched by the user.
+     */
     fun updateFocusByTouch(index: Int) {
-        val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
+        val newInput: SnapshotStateList<GameTile> = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
-        if (getCurrentFocusIndex() != -1 ) newInput[getCurrentFocusIndex()].isFocused = false
+        if (getCurrentFocusIndex() != -1) newInput[getCurrentFocusIndex()].isFocused = false
         if (!newInput[index].isGuessed) {
             newInput[index].isFocused = true
             currentInput = newInput
-        }
-        else updateFocusByWrite(index)
+        } else updateFocusByWrite(index)
     }
 
+    /**
+     * Updates the input at the specified index.
+     * @param index The index to update.
+     * @param char The character to update.
+     */
     fun updateInput(index: Int, char: Char) {
         gameKeyboard[getKeyBoardTile(char)].isVisible = false
-        val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
+        val newInput: SnapshotStateList<GameTile> = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
         newInput[index].value = char
         currentInput = newInput
-        for (i in getCurrentFocusIndex()..8){
+        for (i in getCurrentFocusIndex()..8) {
             if (!currentInput[i].isGuessed) {
                 updateFocusByWrite(i)
                 break
@@ -67,15 +88,23 @@ class UserGameInput {
         }
     }
 
+    /**
+     * Clears the game tile at the specified index.
+     * @param index The index to clear.
+     */
     fun clearGameTile(index: Int) {
-        val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
+        val newInput: SnapshotStateList<GameTile> = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
         gameKeyboard[getKeyBoardTile(currentInput[index].value)].isVisible = true
         newInput[index].value = ' '
         currentInput = newInput
     }
 
-     fun isInputFull() : Boolean {
+    /**
+     * Checks if the input is full.
+     * @return True if the input is full, false otherwise.
+     */
+    fun isInputFull(): Boolean {
         var inputFull = true
         for (i in 0..8) {
             if (currentInput[i].value == ' ') inputFull = false
@@ -83,10 +112,14 @@ class UserGameInput {
         return inputFull
     }
 
+    /**
+     * Updates the focus by writing at the specified index.
+     * @param index The index to update.
+     */
     fun updateFocusByWrite(index: Int) {
-        val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
+        val newInput: SnapshotStateList<GameTile> = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
-        if (getCurrentFocusIndex() != -1 ) newInput[getCurrentFocusIndex()].isFocused = false
+        if (getCurrentFocusIndex() != -1) newInput[getCurrentFocusIndex()].isFocused = false
         var newIndex = index
         while (true) {
             if (isInputFull()) break
@@ -94,9 +127,7 @@ class UserGameInput {
             if (currentInput[newIndex].value != ' ' || currentInput[newIndex].isGuessed) {
                 if (newIndex + 1 > 8) newIndex = 0
                 else newIndex++
-            }
-
-            else {
+            } else {
                 newInput[newIndex].isFocused = true
                 currentInput = newInput
                 break
@@ -104,9 +135,12 @@ class UserGameInput {
         }
     }
 
-    @SuppressLint("SuspiciousIndentation")
-    fun calculateDistance(sequenceToGuess : CharArray) {
-        val newInput :  SnapshotStateList<GameTile>  = emptyList<GameTile>().toMutableStateList()
+    /**
+     * Calculates the distance between current input and the sequence to guess.
+     * @param sequenceToGuess The sequence to be guessed.
+     */
+    fun calculateDistance(sequenceToGuess: CharArray) {
+        val newInput: SnapshotStateList<GameTile> = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
         newInput.forEachIndexed { index, it ->
             val correctIndex = sequenceToGuess.indexOf(it.value)
@@ -117,15 +151,20 @@ class UserGameInput {
                 else -> 9 - rawDistance
             }
             newInput[index].distance = finalDistance
-                if (finalDistance == 0)  {
-                    newInput[index].isGuessed = true
-                    gameKeyboard[getKeyBoardTile(currentInput[index].value)].isGuessed = true
-                }
+            if (finalDistance == 0) {
+                newInput[index].isGuessed = true
+                gameKeyboard[getKeyBoardTile(currentInput[index].value)].isGuessed = true
             }
-            currentInput = newInput
         }
+        currentInput = newInput
+    }
 
-    fun updateUserGuesses(currentAttempts : Int, difficulty: Difficulty) {
+    /**
+     * Updates user guesses based on current attempts and difficulty.
+     * @param currentAttempts The current attempts made.
+     * @param difficulty The difficulty level of the game.
+     */
+    fun updateUserGuesses(currentAttempts: Int, difficulty: Difficulty) {
         val newInput: SnapshotStateList<GameTile> = emptyList<GameTile>().toMutableStateList()
         currentInput.forEach { newInput.add(it) }
         val map = HashMap<Int, Pair<String, Char>>()
@@ -155,26 +194,37 @@ class UserGameInput {
         }
         newGuesses.add(map)
         allGuesses = newGuesses
-        }
+    }
 
-
-    fun isInputAllCorrect() : Boolean {
+    /**
+     * Checks if all input is correct.
+     * @return True if all input is correct, false otherwise.
+     */
+    fun isInputAllCorrect(): Boolean {
         for (i in 0..8) {
             if (!currentInput[i].isGuessed) return false
         }
         return true
     }
 
-    private fun getKeyBoardTile(char : Char) : Int {
+    /**
+     * Gets the keyboard tile index for the specified character.
+     * @param char The character to search for.
+     * @return The index of the keyboard tile.
+     */
+    private fun getKeyBoardTile(char: Char): Int {
         var index = -1
-        gameKeyboard.forEachIndexed {i , it ->
+        gameKeyboard.forEachIndexed { i, it ->
             if (it.value == char) index = i
         }
-        return  index
+        return index
     }
 
-
-    fun setKeyboard(sequenceToGuess : CharArray) {
+    /**
+     * Sets up the keyboard with the sequence to guess.
+     * @param sequenceToGuess The sequence of characters to guess.
+     */
+    fun setKeyboard(sequenceToGuess: CharArray) {
         val startingKeyboard = sequenceToGuess
         startingKeyboard.shuffle()
 

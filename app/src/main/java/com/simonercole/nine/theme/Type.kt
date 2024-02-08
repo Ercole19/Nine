@@ -8,50 +8,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.simonercole.nine.R
 
-val typographySmall = Typography(
-    body1 = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp
-    ),
-    body2 = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
-    ),
-    h6 = TextStyle(
-        fontFamily = FontFamily(Font(R.font.robotomonomediumitalic, FontWeight.Bold)) ,
-        fontWeight = FontWeight.Bold,
-        fontSize = 18.sp
-    ),
-    h5 = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 20.sp
-    ),
-    h4 = TextStyle(
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 23.sp
-    ),
-    h3 = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 26.sp
-    ),
-    h2 = TextStyle(
-        fontFamily = FontFamily(Font(R.font.robotomonobolditalic, FontWeight.Bold )),
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp
-    ),
-    h1 = TextStyle(
-        fontFamily = FontFamily(Font(R.font.robotomonobolditalic, FontWeight.Bold )),
-        fontWeight = FontWeight.Bold,
-        fontSize = 30.sp
-    ),
-
-    )
-
 val typographySmallCompact = Typography(
     body1 = TextStyle(
         fontFamily = FontFamily.Serif,

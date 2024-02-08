@@ -12,10 +12,10 @@ interface GameDAO {
     @Insert
     fun insert(gameEntity: GameEntity)
 
-    @Query("select * from Game_Classic  order by id DESC")  //ordinando i risultati per id decrescente appariranno per prime le partite più recenti
+    @Query("select * from Game_Classic  order by id DESC")  //order by id desc grants that most recent games will be shown first and old ones after
     fun getAllGames(): List<GameEntity>
 
-    @Query("select min(time) from Game_Classic where difficulty = :diff and win = 1")  //ordinando i risultati per id decrescente appariranno per prime le partite più recenti
+    @Query("select min(time) from Game_Classic where difficulty = :diff and win = 1")
     fun getBestTime(diff: Difficulty): String?
 
     @Delete

@@ -4,8 +4,6 @@ import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Typography
-import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -14,44 +12,24 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import com.simonercole.nine.MainActivity
 
-private val DarkColorPalette = darkColors(
-    primary = Purple200,
-    primaryVariant = Purple700,
-    secondary = Teal200
-)
 
-private val LightColorPalette = lightColors(
-    primary = Purple500,
-    primaryVariant = Purple700,
-    secondary = Teal200
-
-    /* Other default colors to override
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black,
-    */
-)
-
+/**
+ * Composable function that applies the theme for the Nine Game application.
+ * @param activity The current activity.
+ * @param content The composable content to be wrapped.
+ */
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-fun NineTheme(activity: Activity = LocalContext.current as MainActivity, darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-
-    val colors = if (darkTheme) {
-        DarkColorPalette
-    } else {
-        LightColorPalette
-    }
-
+fun NineTheme(activity: Activity = LocalContext.current as MainActivity, content: @Composable () -> Unit) {
+    // Calculate window size class
     val window = calculateWindowSizeClass(activity = activity)
     val config = LocalConfiguration.current
 
-    var typography : Typography
-    var appDimens : Dimens
+    // Initialize typography and dimension values
+    val typography: Typography
+    val appDimens: Dimens
 
-
+    // Determine typography and dimension values based on window size class
     when (window.widthSizeClass) {
         WindowWidthSizeClass.Compact -> {
             if (config.screenWidthDp <= 360) {
@@ -65,39 +43,47 @@ fun NineTheme(activity: Activity = LocalContext.current as MainActivity, darkThe
                 typography = typographyCompact
             }
         }
-
         WindowWidthSizeClass.Medium -> {
             appDimens = MediumDimens
             typography = typographyMedium
         }
-
         WindowWidthSizeClass.Expanded -> {
             appDimens = ExpandedDimens
             typography = typographyBig
         }
-
         else -> {
             appDimens = ExpandedDimens
             typography = typographyBig
         }
     }
 
+    // Provide typography and dimensions to children using ProvideAppUtils
     ProvideAppUtils(appDimens = appDimens, typography = typography ) {
+        // Apply MaterialTheme with provided typography and shapes
         MaterialTheme(
-            colors = colors,
             typography = typography,
             shapes = Shapes,
             content = content
         )
-        
     }
 }
 
-object AppTheme{
-    val dimens : Dimens
+/**
+ * Object providing access to theme dimensions and typography.
+ */
+object AppTheme {
+    /**
+     * Retrieves the dimension settings for the app.
+     */
+    val dimens: Dimens
         @Composable
         get() = LocalAppDimens.current
-    val typography : Typography
+
+    /**
+     * Retrieves the typography settings for the app.
+     */
+    val typography: Typography
         @Composable
         get() = LocalAppTypo.current
 }
+
