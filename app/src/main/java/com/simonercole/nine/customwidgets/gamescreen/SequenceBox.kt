@@ -32,13 +32,7 @@ import kotlinx.coroutines.launch
 fun PastGuessesBox(modifier: Modifier, userInputs : SnapshotStateList<HashMap<Int, Pair<String, Char>>>) {
     val coroutineScope = rememberCoroutineScope()
     val state = rememberLazyListState()
-    Box(/*modifier = Modifier
-        .constrainAs(pastGuessesBox) {
-            top.linkTo(pastGuessesText.bottom, ConstraintLayoutMargins.smallMargin3)
-            start.linkTo(parent.start)
-            end.linkTo(parent.end)
-            bottom.linkTo(userKeyBoardBox.top, ConstraintLayoutMargins.mediumMargin1)*/
-        //}
+    Box(
         modifier
         .background(Color.White, RoundedCornerShape(AppTheme.dimens.small1))
         .clip(shape = RoundedCornerShape(AppTheme.dimens.small1))

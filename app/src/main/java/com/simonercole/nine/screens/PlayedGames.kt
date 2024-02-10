@@ -62,9 +62,6 @@ fun PlayedGames(
     navController: NavHostController
 ) {
     val expanded by viewModel.observableExpandedMenu.observeAsState()
-    val chosenDifficulty by viewModel.observableDifficulty.observeAsState()
-    val showBestTimes by viewModel.observableSortByBestTimeIsChosen.observeAsState()
-    val gameResult by viewModel.observableGameResult.observeAsState()
     val playedGames by viewModel.observableList.observeAsState()
 
     BackHandler(enabled = true, onBack = { viewModel.navigateToMainScreen(navController) })
@@ -133,9 +130,6 @@ fun PlayedGames(
            PlayedGamesMenu(
                isExpanded = expanded!!,
                viewModel = viewModel,
-               chosenDifficulty = chosenDifficulty!!,
-               gameResult = gameResult!!,
-               showBestTimes = showBestTimes!!
            )
         }
 

@@ -7,9 +7,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.simonercole.nine.R
@@ -20,7 +18,10 @@ import com.simonercole.nine.viewmodel.PlayedGamesViewModel
 import me.saket.cascade.CascadeDropdownMenu
 
 @Composable
-fun PlayedGamesMenu(isExpanded : Boolean, viewModel: PlayedGamesViewModel, chosenDifficulty : Difficulty, gameResult : GameResult, showBestTimes: Boolean) {
+fun PlayedGamesMenu(isExpanded : Boolean, viewModel: PlayedGamesViewModel) {
+    val chosenDifficulty by viewModel.observableDifficulty.observeAsState()
+    val showBestTimes by viewModel.observableSortByBestTimeIsChosen.observeAsState()
+    val gameResult by viewModel.observableGameResult.observeAsState()
 
     CascadeDropdownMenu(
         expanded = isExpanded,
@@ -85,7 +86,7 @@ fun PlayedGamesMenu(isExpanded : Boolean, viewModel: PlayedGamesViewModel, chose
         )
         DropdownMenuItem(
             text = { Text(stringResource(id = R.string.GameStatus), style = AppTheme.typography.body1) },
-            enabled = !showBestTimes,
+            enabled = !showBestTimes!!,
             children = {
                 androidx.compose.material3.DropdownMenuItem(
                     text = { Text(stringResource(id = R.string.Won), style = AppTheme.typography.body1) },
@@ -129,7 +130,7 @@ fun PlayedGamesMenu(isExpanded : Boolean, viewModel: PlayedGamesViewModel, chose
         androidx.compose.material3.DropdownMenuItem(
             text = { Text(stringResource(id = R.string.ShowBestTime), style = AppTheme.typography.body1) },
             trailingIcon = {
-                if (showBestTimes)
+                if (showBestTimes!!)
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
