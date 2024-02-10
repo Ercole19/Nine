@@ -27,6 +27,9 @@ class PlayedGamesViewModel(application: Application): AndroidViewModel(applicati
     // Instance of PlayedGameContainer to manage played games
     private var playedGameContainer = PlayedGameContainer(this)
 
+    private var expandedMenu : MutableLiveData<Boolean> = MutableLiveData(false)
+    val observableExpandedMenu : LiveData<Boolean>  = expandedMenu
+
     // LiveData for the list of played games
     private var playedGamesList : MutableLiveData<SnapshotStateList<PlayedGame>> = MutableLiveData(playedGameContainer.playedGames)
     val observableList : LiveData<SnapshotStateList<PlayedGame>> = playedGamesList
@@ -110,6 +113,10 @@ class PlayedGamesViewModel(application: Application): AndroidViewModel(applicati
         chosenDifficulty.value = playedGameContainer.filter.chosenDifficulty
         chosenGameResult.value = playedGameContainer.filter.gameResult
         sortByBestTimeIsChosen.value = playedGameContainer.filter.showBestTimes
+    }
+
+    fun changeExpandedValue() {
+        expandedMenu.value = expandedMenu.value!!.not()
     }
 }
 
