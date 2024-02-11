@@ -2,6 +2,8 @@ package com.simonercole.nine.customwidgets.playedgamesscreen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,10 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -32,6 +37,7 @@ import com.simonercole.nine.theme.no_cell
 import com.simonercole.nine.theme.ok_cell
 import com.simonercole.nine.utils.ConstraintLayoutMargins
 import com.simonercole.nine.utils.Difficulty
+import com.simonercole.nine.utils.GameStatus
 import com.simonercole.nine.viewmodel.PlayedGamesViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -83,6 +89,14 @@ fun PlayedGamesList(modifier : Modifier, innerPadding : PaddingValues, playedGam
                                     modifier = Modifier
                                         .padding(AppTheme.dimens.small1/2)
                                 ) {
+                                    if (playedGame.record) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = "Record",
+                                            modifier = Modifier.size(AppTheme.dimens.small2),
+                                            tint = Color.Black
+                                        )
+                                    }
                                     Text(
                                         text = formatterDate.format(date),
                                         color = Color.Black

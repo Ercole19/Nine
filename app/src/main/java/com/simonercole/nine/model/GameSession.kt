@@ -1,14 +1,13 @@
 package com.simonercole.nine.model
 
 import android.content.Context
+import androidx.lifecycle.viewModelScope
 import com.simonercole.nine.R
 import com.simonercole.nine.utils.Difficulty
 import com.simonercole.nine.utils.EndRequest
 import com.simonercole.nine.utils.GameStatus
 import com.simonercole.nine.viewmodel.NineGameViewModel
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -79,11 +78,10 @@ class GameSession(private val viewModel: NineGameViewModel) {
     /**
      * Starts the game timer.
      */
-    @OptIn(DelicateCoroutinesApi::class)
     private fun startTimer() {
         if (game.timerValue.value == 0) game.timerValue.value = 0
         job?.cancel()
-        job = GlobalScope.launch(Dispatchers.Main) {
+        job = viewModel.viewModelScope.launch(Dispatchers.Main) {
             withContext(Dispatchers.Main) {
                 delay(timeMillis = 200)
                 while (isActive) {

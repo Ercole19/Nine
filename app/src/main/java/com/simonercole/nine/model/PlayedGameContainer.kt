@@ -21,7 +21,8 @@ data class PlayedGame(
     var showElementByResult: Boolean,
     var showElementByDifficulty: Boolean,
     var deleted: Boolean,
-    var game: GameEntity
+    var game: GameEntity,
+    var record : Boolean
 )
 
 /**
@@ -48,10 +49,12 @@ class PlayedGameContainer(viewModel: PlayedGamesViewModel) {
                     true,
                     true,
                     false,
-                    game
+                    game,
+                    false
                 )
             )
         }
+        getRecordsForEachDifficulties()
         totalPlayedGames = playedGames
     }
 
@@ -89,6 +92,7 @@ class PlayedGameContainer(viewModel: PlayedGamesViewModel) {
                 playedGame.deleted = true
             }
         }
+        getRecordsForEachDifficulties()
         playedGamesRepository.deleteGame(gameEntity)
     }
 
@@ -127,6 +131,38 @@ class PlayedGameContainer(viewModel: PlayedGamesViewModel) {
             } else playedGame.showElementByDifficulty = true
         }
 
+    }
+
+    /**
+     * Find which game holds the time record( for each difficulty). Then updates the game list
+     */
+    private fun getRecordsForEachDifficulties() {
+        var recordEasy : Pair<Int, Int> =Pair(-1, 1000)
+        var recordMedium : Pair<Int, Int> =Pair(-1, 1000)
+        var recordHard: Pair<Int, Int> =Pair(-1, 1000)
+
+        playedGames.forEachIndexed { i , playedGame ->
+            if (playedGame.game.win) {
+                when (playedGame.game.difficulty)  {
+                    Difficulty.Easy ->
+                        if (playedGame.timeValue < recordEasy.second && !playedGame.deleted) {
+                            recordEasy =  Pair(i, playedGame.timeValue)
+                        }
+                    Difficulty.Medium ->
+                        if (playedGame.timeValue < recordMedium.second && !playedGame.deleted) {
+                            recordMedium =  Pair(i, playedGame.timeValue)
+                        }
+                    else ->
+                        if (playedGame.timeValue < recordHard.second && !playedGame.deleted) {
+                            recordHard =  Pair(i, playedGame.timeValue)
+                        }
+                }
+            }
+        }
+
+        if (recordEasy.first != -1) playedGames[recordEasy.first].record = true
+        if (recordMedium.first != -1) playedGames[recordMedium.first].record = true
+        if (recordHard.first != -1) playedGames[recordHard.first].record = true
     }
 
     /**
