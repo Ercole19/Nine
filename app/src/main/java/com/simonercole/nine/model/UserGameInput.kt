@@ -225,10 +225,11 @@ class UserGameInput {
      * @param sequenceToGuess The sequence of characters to guess.
      */
     fun setKeyboard(sequenceToGuess: CharArray) {
-        val startingKeyboard = sequenceToGuess
+        val startingKeyboard = CharArray(9)
+        sequenceToGuess.forEachIndexed { i,c -> startingKeyboard[i] = c }
         startingKeyboard.shuffle()
 
-        startingKeyboard.forEachIndexed { i, it ->
+            startingKeyboard.forEachIndexed { i, it ->
             gameKeyboard[i].value = it
             gameKeyboard[i].isVisible = true
             gameKeyboard[i].isGuessed = false
